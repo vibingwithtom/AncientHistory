@@ -375,8 +375,17 @@ struct MboxOperationsView: View {
                 statusMessage = ""
 
                 Task {
+                    // Sandbox: claim access to the user-selected input files and the
+                    // save-panel output for the duration of the merge.
+                    let inputs = selectedFiles
+                    let accessedInputs = inputs.filter { $0.startAccessingSecurityScopedResource() }
+                    let accessedOutput = url.startAccessingSecurityScopedResource()
+                    defer {
+                        accessedInputs.forEach { $0.stopAccessingSecurityScopedResource() }
+                        if accessedOutput { url.stopAccessingSecurityScopedResource() }
+                    }
                     do {
-                        try MboxFileOperations.mergeFiles(selectedFiles, to: url) { current, total in
+                        try MboxFileOperations.mergeFiles(inputs, to: url) { current, total in
                             Task { @MainActor in
                                 progress = Double(current) / Double(total)
                             }
@@ -413,6 +422,15 @@ struct MboxOperationsView: View {
                 statusMessage = ""
 
                 Task {
+                    // Sandbox: claim access to the source file and the chosen output
+                    // directory for the duration of the split.
+                    let sourceURL = viewModel.currentFileURL ?? URL(fileURLWithPath: "")
+                    let accessedSource = sourceURL.startAccessingSecurityScopedResource()
+                    let accessedOutput = outputDir.startAccessingSecurityScopedResource()
+                    defer {
+                        if accessedSource { sourceURL.stopAccessingSecurityScopedResource() }
+                        if accessedOutput { outputDir.stopAccessingSecurityScopedResource() }
+                    }
                     do {
                         let strategy: MboxFileOperations.SplitStrategy
 
@@ -438,7 +456,7 @@ struct MboxOperationsView: View {
                         }
 
                         let outputFiles = try await MboxFileOperations.splitFile(
-                            viewModel.currentFileURL ?? URL(fileURLWithPath: ""),
+                            sourceURL,
                             strategy: strategy,
                             toDirectory: outputDir
                         ) { current, total in
