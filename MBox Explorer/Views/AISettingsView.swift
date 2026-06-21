@@ -133,9 +133,9 @@ struct AISettingsView: View {
                                     .font(.caption)
                             }
                             HStack {
-                                Image(systemName: aiBackend.isOMLXAvailable ? "checkmark.circle.fill" : "xmark.circle")
-                                    .foregroundColor(aiBackend.isOMLXAvailable ? .green : .gray)
-                                Text("oMLX (Local Server)")
+                                Image(systemName: aiBackend.isEndpointAvailable ? "checkmark.circle.fill" : "xmark.circle")
+                                    .foregroundColor(aiBackend.isEndpointAvailable ? .green : .gray)
+                                Text("OpenAI-Compatible Endpoint")
                                     .font(.caption)
                             }
                         }

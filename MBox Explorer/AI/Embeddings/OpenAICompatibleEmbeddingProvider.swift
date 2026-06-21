@@ -1,23 +1,23 @@
 //
-//  OMLXEmbeddingProvider.swift
+//  OpenAICompatibleEmbeddingProvider.swift
 //  Ancient History
 //
-//  Embedding provider backed by the local oMLX server, pointed at a local
+//  Embedding provider backed by the local OpenAI-compatible endpoint server, pointed at a local
 //  BGE-M3 model. Replaces the old MLX stub and the Python sentence-transformers
 //  bridge — both of which are removed — so retrieval embeddings run on the same
 //  local server as generation, with no subprocess spawning (sandbox-friendly).
 //
 //  Uses the server's OpenAI-compatible POST {baseURL}/v1/embeddings endpoint.
-//  ⚠️ The exact oMLX embeddings API still needs confirming against the server.
+//  ⚠️ The exact OpenAI-compatible endpoint embeddings API still needs confirming against the server.
 //
 //  Forked from MBox Explorer (MIT). Part of milestone M3.
 //
 
 import Foundation
 
-/// Embedding provider that calls the local oMLX server for BGE-M3 embeddings.
-class OMLXEmbeddingProvider: EmbeddingProvider, ObservableObject {
-    let name = "oMLX (BGE-M3)"
+/// Embedding provider that calls the local OpenAI-compatible endpoint server for BGE-M3 embeddings.
+class OpenAICompatibleEmbeddingProvider: EmbeddingProvider, ObservableObject {
+    let name = "OpenAI-Compatible (BGE-M3)"
 
     @Published var isAvailable = false
 
@@ -30,9 +30,9 @@ class OMLXEmbeddingProvider: EmbeddingProvider, ObservableObject {
     private let baseURL: String
 
     init(baseURL: String? = nil, model: String = "bge-m3") {
-        // Share the oMLX server URL with AIBackendManager's setting when present.
+        // Share the OpenAI-compatible endpoint server URL with AIBackendManager's setting when present.
         self.baseURL = baseURL
-            ?? UserDefaults.standard.string(forKey: "AIBackendManager_OMLXServerURL")
+            ?? UserDefaults.standard.string(forKey: "AIBackendManager_EndpointURL")
             ?? "http://localhost:8000"
         self.model = model
     }
@@ -62,7 +62,7 @@ class OMLXEmbeddingProvider: EmbeddingProvider, ObservableObject {
 
     func generateBatchEmbeddings(for texts: [String]) async throws -> [[Float]] {
         guard let url = URL(string: "\(baseURL)/v1/embeddings") else {
-            throw EmbeddingError.networkError("Invalid oMLX server URL")
+            throw EmbeddingError.networkError("Invalid OpenAI-compatible endpoint server URL")
         }
 
         var request = URLRequest(url: url)
@@ -79,7 +79,7 @@ class OMLXEmbeddingProvider: EmbeddingProvider, ObservableObject {
 
         guard let httpResponse = response as? HTTPURLResponse,
               httpResponse.statusCode == 200 else {
-            throw EmbeddingError.generationFailed("oMLX embeddings HTTP error")
+            throw EmbeddingError.generationFailed("OpenAI-compatible endpoint embeddings HTTP error")
         }
 
         struct EmbeddingsResponse: Codable {

@@ -1,14 +1,14 @@
 //
-//  OMLXServerEngine.swift
+//  OpenAICompatibleEngine.swift
 //  Ancient History
 //
-//  The real `OMLXEngine`: a thin HTTP client to the local oMLX server.
+//  The real `LLMEngine`: a thin HTTP client to the local OpenAI-compatible endpoint server.
 //
-//  ⚠️ The exact oMLX server API (paths, request/response shape, streaming format)
+//  ⚠️ The exact OpenAI-compatible endpoint server API (paths, request/response shape, streaming format)
 //  still needs to be confirmed against the running server. The default `.openAIChat`
 //  style assumes an OpenAI-compatible `POST /v1/chat/completions` endpoint with
 //  Server-Sent-Events streaming — the same convention the existing TinyChat /
-//  OpenWebUI providers in this app already use. If the oMLX server speaks a
+//  OpenWebUI providers in this app already use. If the OpenAI-compatible endpoint server speaks a
 //  different protocol, add a case to `APIStyle` and a matching encoder/decoder
 //  rather than changing the provider above it.
 //
@@ -20,8 +20,8 @@
 
 import Foundation
 
-/// HTTP client to a local oMLX model server.
-struct OMLXServerEngine: OMLXEngine {
+/// HTTP client to a local OpenAI-compatible endpoint model server.
+struct OpenAICompatibleEngine: LLMEngine {
 
     /// Wire protocol spoken by the server.
     enum APIStyle: Hashable, Sendable {
@@ -50,21 +50,21 @@ struct OMLXServerEngine: OMLXEngine {
         self.requestTimeout = requestTimeout
     }
 
-    func generate(messages: [OMLXChatMessage],
-                  params: OMLXGenerationParams) -> AsyncThrowingStream<OMLXStreamEvent, Error> {
+    func generate(messages: [LLMChatMessage],
+                  params: LLMGenerationParams) -> AsyncThrowingStream<LLMStreamEvent, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
                     try await stream(messages: messages, params: params, into: continuation)
                     continuation.finish()
                 } catch is CancellationError {
-                    continuation.finish(throwing: OMLXEngineError.timeout)
-                } catch let error as OMLXEngineError {
+                    continuation.finish(throwing: LLMEngineError.timeout)
+                } catch let error as LLMEngineError {
                     continuation.finish(throwing: error)
                 } catch let urlError as URLError {
-                    continuation.finish(throwing: OMLXServerEngine.mapURLError(urlError))
+                    continuation.finish(throwing: OpenAICompatibleEngine.mapURLError(urlError))
                 } catch {
-                    continuation.finish(throwing: OMLXEngineError.generationFailed(error.localizedDescription))
+                    continuation.finish(throwing: LLMEngineError.generationFailed(error.localizedDescription))
                 }
             }
             continuation.onTermination = { _ in task.cancel() }
@@ -73,9 +73,9 @@ struct OMLXServerEngine: OMLXEngine {
 
     // MARK: - Streaming
 
-    private func stream(messages: [OMLXChatMessage],
-                        params: OMLXGenerationParams,
-                        into continuation: AsyncThrowingStream<OMLXStreamEvent, Error>.Continuation) async throws {
+    private func stream(messages: [LLMChatMessage],
+                        params: LLMGenerationParams,
+                        into continuation: AsyncThrowingStream<LLMStreamEvent, Error>.Continuation) async throws {
         let request = try makeRequest(messages: messages, params: params)
         let (bytes, response) = try await urlSession.bytes(for: request)
 
@@ -105,7 +105,7 @@ struct OMLXServerEngine: OMLXEngine {
                                           reasoningTokens: usage.reasoning))
             }
             if let refusal = chunk.refusal {
-                throw OMLXEngineError.refusal(refusal)
+                throw LLMEngineError.refusal(refusal)
             }
         }
 
@@ -120,16 +120,16 @@ struct OMLXServerEngine: OMLXEngine {
 
     // MARK: - Request building
 
-    private func makeRequest(messages: [OMLXChatMessage],
-                             params: OMLXGenerationParams) throws -> URLRequest {
+    private func makeRequest(messages: [LLMChatMessage],
+                             params: LLMGenerationParams) throws -> URLRequest {
         switch apiStyle {
         case .openAIChat:
             return try makeOpenAIRequest(messages: messages, params: params)
         }
     }
 
-    private func makeOpenAIRequest(messages: [OMLXChatMessage],
-                                   params: OMLXGenerationParams) throws -> URLRequest {
+    private func makeOpenAIRequest(messages: [LLMChatMessage],
+                                   params: LLMGenerationParams) throws -> URLRequest {
         var request = URLRequest(url: baseURL.appendingPathComponent("chat/completions"))
         request.httpMethod = "POST"
         request.timeoutInterval = requestTimeout
@@ -159,7 +159,7 @@ struct OMLXServerEngine: OMLXEngine {
         return request
     }
 
-    private static func reasoningField(_ thinking: OMLXThinkingMode) -> String? {
+    private static func reasoningField(_ thinking: LLMThinkingMode) -> String? {
         switch thinking {
         case .off: return nil
         case .light: return "low"
@@ -224,15 +224,15 @@ struct OMLXServerEngine: OMLXEngine {
             let retryAfter = (http.value(forHTTPHeaderField: "Retry-After"))
                 .flatMap(TimeInterval.init)
                 .map { Date(timeIntervalSinceNow: $0) }
-            throw OMLXEngineError.rateLimited(retryAfter: retryAfter)
+            throw LLMEngineError.rateLimited(retryAfter: retryAfter)
         case 413:
-            throw OMLXEngineError.contextOverflow(tokenCount: -1, contextWindow: -1)
+            throw LLMEngineError.contextOverflow(tokenCount: -1, contextWindow: -1)
         default:
-            throw OMLXEngineError.generationFailed("oMLX server returned HTTP \(http.statusCode).")
+            throw LLMEngineError.generationFailed("OpenAI-compatible endpoint server returned HTTP \(http.statusCode).")
         }
     }
 
-    private static func mapURLError(_ error: URLError) -> OMLXEngineError {
+    private static func mapURLError(_ error: URLError) -> LLMEngineError {
         switch error.code {
         case .timedOut:
             return .timeout

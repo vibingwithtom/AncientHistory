@@ -8,12 +8,12 @@
 
 /* Begin PBXBuildFile section */
 		B8EDEE56F4032D22EECD4062 /* ZipExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 458153E6299A968CB6583BCA /* ZipExtractor.swift */; };
-		F0133457F92D333CCAA3E635 /* OMLXEmbeddingProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B33E1876AFA33FBA6F64744 /* OMLXEmbeddingProvider.swift */; };
-		F3EAF0ED2BD9E12067C2879F /* OMLXEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A723031B9C1E0CE18B1D9CC7 /* OMLXEngine.swift */; };
-		98B3CC93CD924EE94A3286C5 /* OMLXLanguageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D846C16D1815B09DD20EE9FF /* OMLXLanguageModel.swift */; };
-		994D2A53FF942799F0F8C77A /* OMLXTranscriptMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DD7DE7FCD9BB82633B7A688 /* OMLXTranscriptMapper.swift */; };
-		42D9B0A12FC01FEB6241ECD9 /* OMLXEchoEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AA5F738DDF786068D87A404 /* OMLXEchoEngine.swift */; };
-		BFACFA658F3B7C23FAAFF993 /* OMLXServerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2DF1B43B4C4E1D4F74D70C7 /* OMLXServerEngine.swift */; };
+		F0133457F92D333CCAA3E635 /* OpenAICompatibleEmbeddingProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B33E1876AFA33FBA6F64744 /* OpenAICompatibleEmbeddingProvider.swift */; };
+		F3EAF0ED2BD9E12067C2879F /* LLMEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A723031B9C1E0CE18B1D9CC7 /* LLMEngine.swift */; };
+		98B3CC93CD924EE94A3286C5 /* EndpointLanguageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D846C16D1815B09DD20EE9FF /* EndpointLanguageModel.swift */; };
+		994D2A53FF942799F0F8C77A /* TranscriptChatMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DD7DE7FCD9BB82633B7A688 /* TranscriptChatMapper.swift */; };
+		42D9B0A12FC01FEB6241ECD9 /* EchoLLMEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AA5F738DDF786068D87A404 /* EchoLLMEngine.swift */; };
+		BFACFA658F3B7C23FAAFF993 /* OpenAICompatibleEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2DF1B43B4C4E1D4F74D70C7 /* OpenAICompatibleEngine.swift */; };
 		050AE07D9F0290A9C9B59841 /* CommitmentTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 408098289A40C753C412475A /* CommitmentTracker.swift */; };
 		0ACC5F34C57FEAFED5D7DF30 /* DecisionArchaeologist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 747630C04E4FCF77DDE62867 /* DecisionArchaeologist.swift */; };
 		162EA02AA9581D8F680F992B /* TinyChatEmbeddingProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49684E8221083E6F0CE2A0E /* TinyChatEmbeddingProvider.swift */; };
@@ -164,12 +164,12 @@
 
 /* Begin PBXFileReference section */
 		458153E6299A968CB6583BCA /* ZipExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZipExtractor.swift; sourceTree = "<group>"; };
-		8B33E1876AFA33FBA6F64744 /* OMLXEmbeddingProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/Embeddings/OMLXEmbeddingProvider.swift"; sourceTree = "<group>"; };
-		A723031B9C1E0CE18B1D9CC7 /* OMLXEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/FoundationModels/OMLXEngine.swift"; sourceTree = "<group>"; };
-		D846C16D1815B09DD20EE9FF /* OMLXLanguageModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/FoundationModels/OMLXLanguageModel.swift"; sourceTree = "<group>"; };
-		5DD7DE7FCD9BB82633B7A688 /* OMLXTranscriptMapper.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/FoundationModels/OMLXTranscriptMapper.swift"; sourceTree = "<group>"; };
-		8AA5F738DDF786068D87A404 /* OMLXEchoEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/FoundationModels/OMLXEchoEngine.swift"; sourceTree = "<group>"; };
-		E2DF1B43B4C4E1D4F74D70C7 /* OMLXServerEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/FoundationModels/OMLXServerEngine.swift"; sourceTree = "<group>"; };
+		8B33E1876AFA33FBA6F64744 /* OpenAICompatibleEmbeddingProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/Embeddings/OpenAICompatibleEmbeddingProvider.swift"; sourceTree = "<group>"; };
+		A723031B9C1E0CE18B1D9CC7 /* LLMEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/FoundationModels/LLMEngine.swift"; sourceTree = "<group>"; };
+		D846C16D1815B09DD20EE9FF /* EndpointLanguageModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/FoundationModels/EndpointLanguageModel.swift"; sourceTree = "<group>"; };
+		5DD7DE7FCD9BB82633B7A688 /* TranscriptChatMapper.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/FoundationModels/TranscriptChatMapper.swift"; sourceTree = "<group>"; };
+		8AA5F738DDF786068D87A404 /* EchoLLMEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/FoundationModels/EchoLLMEngine.swift"; sourceTree = "<group>"; };
+		E2DF1B43B4C4E1D4F74D70C7 /* OpenAICompatibleEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/FoundationModels/OpenAICompatibleEngine.swift"; sourceTree = "<group>"; };
 		079E96CC45CDE63932C5618D /* OpenWebUIEmbeddingProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = OpenWebUIEmbeddingProvider.swift; path = AI/Embeddings/OpenWebUIEmbeddingProvider.swift; sourceTree = "<group>"; };
 		115D4C75DA6C34BE59C9CBB5 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = "MBox Explorer Widget/Assets.xcassets"; sourceTree = "<group>"; };
 		1D32F6CD61ACBEADE2914689 /* MBoxExplorerWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MBoxExplorerWidget.swift; sourceTree = "<group>"; };
@@ -318,11 +318,11 @@
 		54503A623328C982A327062B /* AI */ = {
 			isa = PBXGroup;
 			children = (
-				A723031B9C1E0CE18B1D9CC7 /* OMLXEngine.swift */,
-				D846C16D1815B09DD20EE9FF /* OMLXLanguageModel.swift */,
-				5DD7DE7FCD9BB82633B7A688 /* OMLXTranscriptMapper.swift */,
-				8AA5F738DDF786068D87A404 /* OMLXEchoEngine.swift */,
-				E2DF1B43B4C4E1D4F74D70C7 /* OMLXServerEngine.swift */,
+				A723031B9C1E0CE18B1D9CC7 /* LLMEngine.swift */,
+				D846C16D1815B09DD20EE9FF /* EndpointLanguageModel.swift */,
+				5DD7DE7FCD9BB82633B7A688 /* TranscriptChatMapper.swift */,
+				8AA5F738DDF786068D87A404 /* EchoLLMEngine.swift */,
+				E2DF1B43B4C4E1D4F74D70C7 /* OpenAICompatibleEngine.swift */,
 				3533E5F905952EC4B14E8BD9 /* VectorDatabase.swift */,
 				2610D3EFB2D5D23FD826606E /* LocalLLM.swift */,
 				38316534653438322D383937622D343030322D626162642D /* OllamaClient.swift */,
@@ -436,7 +436,7 @@
 		EMB003000000000000000001 /* Embeddings */ = {
 			isa = PBXGroup;
 			children = (
-				8B33E1876AFA33FBA6F64744 /* OMLXEmbeddingProvider.swift */,
+				8B33E1876AFA33FBA6F64744 /* OpenAICompatibleEmbeddingProvider.swift */,
 				EMB002010000000000000001 /* EmbeddingProvider.swift */,
 				EMB002020000000000000001 /* OllamaEmbeddingProvider.swift */,
 				EMB002040000000000000001 /* OpenAIEmbeddingProvider.swift */,
@@ -796,12 +796,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				B8EDEE56F4032D22EECD4062 /* ZipExtractor.swift in Sources */,
-				F0133457F92D333CCAA3E635 /* OMLXEmbeddingProvider.swift in Sources */,
-				F3EAF0ED2BD9E12067C2879F /* OMLXEngine.swift in Sources */,
-				98B3CC93CD924EE94A3286C5 /* OMLXLanguageModel.swift in Sources */,
-				994D2A53FF942799F0F8C77A /* OMLXTranscriptMapper.swift in Sources */,
-				42D9B0A12FC01FEB6241ECD9 /* OMLXEchoEngine.swift in Sources */,
-				BFACFA658F3B7C23FAAFF993 /* OMLXServerEngine.swift in Sources */,
+				F0133457F92D333CCAA3E635 /* OpenAICompatibleEmbeddingProvider.swift in Sources */,
+				F3EAF0ED2BD9E12067C2879F /* LLMEngine.swift in Sources */,
+				98B3CC93CD924EE94A3286C5 /* EndpointLanguageModel.swift in Sources */,
+				994D2A53FF942799F0F8C77A /* TranscriptChatMapper.swift in Sources */,
+				42D9B0A12FC01FEB6241ECD9 /* EchoLLMEngine.swift in Sources */,
+				BFACFA658F3B7C23FAAFF993 /* OpenAICompatibleEngine.swift in Sources */,
 				MB0000010000000000000001 /* MBox_ExplorerApp.swift in Sources */,
 				D07875692EB1BA1900C75A43 /* SearchHistoryManager.swift in Sources */,
 				MB0000030000000000000001 /* ContentView.swift in Sources */,

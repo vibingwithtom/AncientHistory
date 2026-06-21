@@ -53,7 +53,7 @@ enum EmbeddingError: LocalizedError {
 /// Embedding provider type
 enum EmbeddingProviderType: String, CaseIterable, Identifiable {
     case ollama = "Ollama"
-    case omlx = "oMLX"
+    case openAICompatible = "OpenAI-Compatible"
     case openai = "OpenAI"
     case tinyChat = "TinyChat"
     case openWebUI = "OpenWebUI"
@@ -65,8 +65,8 @@ enum EmbeddingProviderType: String, CaseIterable, Identifiable {
         switch self {
         case .ollama:
             return "Local embeddings via Ollama (free, private)"
-        case .omlx:
-            return "Local oMLX server with BGE-M3 (free, private)"
+        case .openAICompatible:
+            return "Local OpenAI-compatible endpoint server with BGE-M3 (free, private)"
         case .openai:
             return "Cloud embeddings via OpenAI API (paid, high quality)"
         case .tinyChat:
@@ -82,8 +82,8 @@ enum EmbeddingProviderType: String, CaseIterable, Identifiable {
         switch self {
         case .ollama:
             return "brew install ollama && ollama pull nomic-embed-text"
-        case .omlx:
-            return "Run the local oMLX server with a BGE-M3 model"
+        case .openAICompatible:
+            return "Run the local OpenAI-compatible endpoint server with a BGE-M3 model"
         case .openai:
             return "Requires OpenAI API key"
         case .tinyChat:
@@ -124,7 +124,7 @@ class EmbeddingManager: ObservableObject {
     @Published var statusMessage = "Checking..."
 
     private var ollamaProvider: OllamaEmbeddingProvider?
-    private var omlxProvider: OMLXEmbeddingProvider?
+    private var endpointProvider: OpenAICompatibleEmbeddingProvider?
     private var openaiProvider: OpenAIEmbeddingProvider?
     private var tinyChatProvider: TinyChatEmbeddingProvider?
     private var openWebUIProvider: OpenWebUIEmbeddingProvider?
@@ -137,7 +137,7 @@ class EmbeddingManager: ObservableObject {
 
         // Initialize providers
         ollamaProvider = OllamaEmbeddingProvider()
-        omlxProvider = OMLXEmbeddingProvider()
+        endpointProvider = OpenAICompatibleEmbeddingProvider()
         openaiProvider = OpenAIEmbeddingProvider()
         tinyChatProvider = TinyChatEmbeddingProvider()
         openWebUIProvider = OpenWebUIEmbeddingProvider()
@@ -158,9 +158,9 @@ class EmbeddingManager: ObservableObject {
         case .ollama:
             await ollamaProvider?.checkAvailability()
             provider = ollamaProvider
-        case .omlx:
-            await omlxProvider?.checkAvailability()
-            provider = omlxProvider
+        case .openAICompatible:
+            await endpointProvider?.checkAvailability()
+            provider = endpointProvider
         case .openai:
             await openaiProvider?.checkAvailability()
             provider = openaiProvider

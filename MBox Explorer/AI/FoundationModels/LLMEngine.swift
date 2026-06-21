@@ -1,13 +1,13 @@
 //
-//  OMLXEngine.swift
+//  LLMEngine.swift
 //  Ancient History
 //
-//  The engine boundary that the Foundation Models oMLX provider sits on top of.
-//  An OMLXEngine knows how to run a chat completion against a model and stream
+//  The engine boundary that the Foundation Models OpenAI-compatible endpoint provider sits on top of.
+//  An LLMEngine knows how to run a chat completion against a model and stream
 //  the result back as a sequence of events. It is intentionally free of any
 //  FoundationModels types so it can be implemented and unit-tested in isolation
-//  (the real implementation, `OMLXServerEngine`, is a thin HTTP client to the
-//  local oMLX server; `OMLXEchoEngine` is an in-process stub for tests).
+//  (the real implementation, `OpenAICompatibleEngine`, is a thin HTTP client to the
+//  local OpenAI-compatible endpoint server; `EchoLLMEngine` is an in-process stub for tests).
 //
 //  Forked from MBox Explorer (MIT). Part of milestone M2.
 //
@@ -16,22 +16,22 @@ import Foundation
 
 // MARK: - Chat surface
 
-/// Chat roles understood by the oMLX server, mapped from `Transcript.Entry` kinds.
-enum OMLXRole: String, Sendable, Hashable, Codable {
+/// Chat roles understood by the OpenAI-compatible endpoint server, mapped from `Transcript.Entry` kinds.
+enum LLMChatRole: String, Sendable, Hashable, Codable {
     case system
     case user
     case assistant
     case tool
 }
 
-/// One message in an oMLX chat request.
-struct OMLXChatMessage: Sendable, Hashable, Codable {
-    var role: OMLXRole
+/// One message in an OpenAI-compatible endpoint chat request.
+struct LLMChatMessage: Sendable, Hashable, Codable {
+    var role: LLMChatRole
     var content: String
     /// Present for `.tool` messages: the name of the tool whose output this carries.
     var toolName: String?
 
-    init(role: OMLXRole, content: String, toolName: String? = nil) {
+    init(role: LLMChatRole, content: String, toolName: String? = nil) {
         self.role = role
         self.content = content
         self.toolName = toolName
@@ -39,7 +39,7 @@ struct OMLXChatMessage: Sendable, Hashable, Codable {
 }
 
 /// Per-request "thinking" / reasoning effort, derived from `ContextOptions.reasoningLevel`.
-enum OMLXThinkingMode: Sendable, Hashable, Codable {
+enum LLMThinkingMode: Sendable, Hashable, Codable {
     case off
     case light
     case moderate
@@ -48,12 +48,12 @@ enum OMLXThinkingMode: Sendable, Hashable, Codable {
 }
 
 /// Generation parameters mapped from `GenerationOptions` + `ContextOptions`.
-struct OMLXGenerationParams: Sendable, Hashable {
+struct LLMGenerationParams: Sendable, Hashable {
     var temperature: Double?
     var maxTokens: Int?
     /// nil = let the server decide; otherwise top-k / nucleus / greedy.
     var sampling: Sampling?
-    var thinking: OMLXThinkingMode
+    var thinking: LLMThinkingMode
     /// JSON schema string when the caller requested guided/structured generation.
     var jsonSchema: String?
 
@@ -66,7 +66,7 @@ struct OMLXGenerationParams: Sendable, Hashable {
     init(temperature: Double? = nil,
          maxTokens: Int? = nil,
          sampling: Sampling? = nil,
-         thinking: OMLXThinkingMode = .off,
+         thinking: LLMThinkingMode = .off,
          jsonSchema: String? = nil) {
         self.temperature = temperature
         self.maxTokens = maxTokens
@@ -81,7 +81,7 @@ struct OMLXGenerationParams: Sendable, Hashable {
 /// Events streamed back by an engine, in handshake order:
 /// `.metadata` (once, up front) → `.usage` (token counts, may repeat) → text/reasoning deltas.
 /// The provider translates each of these into a `LanguageModelExecutorGenerationChannel` event.
-enum OMLXStreamEvent: Sendable {
+enum LLMStreamEvent: Sendable {
     /// Opaque key/value metadata about the run (model id, server build, etc.).
     case metadata([String: String])
     /// Running token usage. Sent at least once before completion.
@@ -95,7 +95,7 @@ enum OMLXStreamEvent: Sendable {
 // MARK: - Errors
 
 /// Engine-level failures, mapped by the provider onto `LanguageModelError`.
-enum OMLXEngineError: Error, Sendable {
+enum LLMEngineError: Error, Sendable {
     /// The request exceeded the model's context window. `tokenCount` is what was sent.
     case contextOverflow(tokenCount: Int, contextWindow: Int)
     /// The server (or a safety policy) refused to answer.
@@ -112,8 +112,8 @@ enum OMLXEngineError: Error, Sendable {
 
 // MARK: - Engine
 
-/// Runs chat completions for the Foundation Models oMLX provider.
-protocol OMLXEngine: Sendable {
+/// Runs chat completions for the Foundation Models OpenAI-compatible endpoint provider.
+protocol LLMEngine: Sendable {
     /// Identifier of the model this engine serves (e.g. "gemma-3-12b").
     var modelID: String { get }
 
@@ -124,16 +124,16 @@ protocol OMLXEngine: Sendable {
     func tokenCount(for text: String) -> Int
 
     /// Optional warmup hook; default is a no-op.
-    func prewarm(messages: [OMLXChatMessage]) async
+    func prewarm(messages: [LLMChatMessage]) async
 
     /// Stream a chat completion. Implementations must emit events in handshake order
-    /// (metadata → usage → deltas) and throw `OMLXEngineError` on failure.
-    func generate(messages: [OMLXChatMessage],
-                  params: OMLXGenerationParams) -> AsyncThrowingStream<OMLXStreamEvent, Error>
+    /// (metadata → usage → deltas) and throw `LLMEngineError` on failure.
+    func generate(messages: [LLMChatMessage],
+                  params: LLMGenerationParams) -> AsyncThrowingStream<LLMStreamEvent, Error>
 }
 
-extension OMLXEngine {
-    func prewarm(messages: [OMLXChatMessage]) async {}
+extension LLMEngine {
+    func prewarm(messages: [LLMChatMessage]) async {}
 
     /// Default heuristic token count (~4 chars/token) for engines without a real tokenizer.
     func tokenCount(for text: String) -> Int {
@@ -142,7 +142,7 @@ extension OMLXEngine {
 
     /// Total budgeted input tokens for a set of messages (role/formatting overhead included
     /// loosely via a small per-message constant).
-    func tokenCount(for messages: [OMLXChatMessage]) -> Int {
+    func tokenCount(for messages: [LLMChatMessage]) -> Int {
         messages.reduce(0) { $0 + tokenCount(for: $1.content) + 4 }
     }
 }

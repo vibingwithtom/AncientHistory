@@ -1,8 +1,8 @@
 //
-//  OMLXEchoEngine.swift
+//  EchoLLMEngine.swift
 //  Ancient History
 //
-//  An in-process `OMLXEngine` that streams a deterministic, prompt-derived reply
+//  An in-process `LLMEngine` that streams a deterministic, prompt-derived reply
 //  without any network. It exists so the Foundation Models conformance can be
 //  exercised end-to-end in isolation (the M2 acceptance harness builds a real
 //  `LanguageModelSession` on top of this) and so unit tests don't need a server.
@@ -14,17 +14,17 @@ import Foundation
 
 /// A no-network engine that echoes the last user message back, token-streamed,
 /// emitting the full metadata -> usage -> deltas handshake.
-struct OMLXEchoEngine: OMLXEngine {
+struct EchoLLMEngine: LLMEngine {
     let modelID: String
     let contextWindow: Int
 
-    init(modelID: String = "omlx-echo", contextWindow: Int = 8192) {
+    init(modelID: String = "endpoint-echo", contextWindow: Int = 8192) {
         self.modelID = modelID
         self.contextWindow = contextWindow
     }
 
-    func generate(messages: [OMLXChatMessage],
-                  params: OMLXGenerationParams) -> AsyncThrowingStream<OMLXStreamEvent, Error> {
+    func generate(messages: [LLMChatMessage],
+                  params: LLMGenerationParams) -> AsyncThrowingStream<LLMStreamEvent, Error> {
         let modelID = self.modelID
         let reply = Self.reply(for: messages)
         let words = reply.split(separator: " ", omittingEmptySubsequences: false).map(String.init)
@@ -52,10 +52,10 @@ struct OMLXEchoEngine: OMLXEngine {
     }
 
     /// The echo reply is the most recent user message, or a greeting if there is none.
-    private static func reply(for messages: [OMLXChatMessage]) -> String {
+    private static func reply(for messages: [LLMChatMessage]) -> String {
         if let lastUser = messages.last(where: { $0.role == .user }) {
             return "You said: \(lastUser.content)"
         }
-        return "Hello from oMLX."
+        return "Hello from OpenAI-compatible endpoint."
     }
 }

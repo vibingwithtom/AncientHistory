@@ -26,7 +26,7 @@ import FoundationModels
 
 enum AIBackend: String, Codable, CaseIterable {
     case ollama = "Ollama"
-    case omlx = "oMLX (Local Server)"
+    case openAICompatible = "OpenAI-Compatible Endpoint"
     case onDevice = "On-Device (Apple)"
     case privateCloud = "Private Cloud Compute"
     case tinyLLM = "TinyLLM"
@@ -37,7 +37,7 @@ enum AIBackend: String, Codable, CaseIterable {
     var icon: String {
         switch self {
         case .ollama: return "network"
-        case .omlx: return "server.rack"
+        case .openAICompatible: return "server.rack"
         case .onDevice: return "cpu"
         case .privateCloud: return "lock.icloud"
         case .tinyLLM: return "cube"
@@ -51,8 +51,8 @@ enum AIBackend: String, Codable, CaseIterable {
         switch self {
         case .ollama:
             return "HTTP-based API (Ollama running on localhost:11434)"
-        case .omlx:
-            return "Local oMLX server via Foundation Models (requires macOS 27)"
+        case .openAICompatible:
+            return "Local OpenAI-compatible endpoint server via Foundation Models (requires macOS 27)"
         case .onDevice:
             return "Apple on-device model — fully private, no network (macOS 27)"
         case .privateCloud:
@@ -93,7 +93,7 @@ class AIBackendManager: ObservableObject {
     @Published var selectedBackend: AIBackend = .auto
     @Published var activeBackend: AIBackend? = nil
     @Published var isOllamaAvailable = false
-    @Published var isOMLXAvailable = false
+    @Published var isEndpointAvailable = false
     @Published var isOnDeviceAvailable = false
     @Published var isPrivateCloudAvailable = false
     @Published var isTinyLLMAvailable = false
@@ -106,9 +106,9 @@ class AIBackendManager: ObservableObject {
     @Published var ollamaModels: [String] = []
     @Published var selectedOllamaModel: String = "mistral:latest"
 
-    // oMLX-specific (local model server)
-    @Published var omlxServerURL: String = "http://localhost:8000"
-    @Published var omlxModel: String = "gemma-3-12b"
+    // OpenAI-compatible endpoint-specific (local model server)
+    @Published var endpointURL: String = "http://localhost:8000"
+    @Published var endpointModel: String = "gemma-3-12b"
 
     // TinyLLM-specific (Jason Cox)
     @Published var tinyLLMServerURL: String = "http://localhost:8000"
@@ -132,8 +132,8 @@ class AIBackendManager: ObservableObject {
     private enum Keys {
         static let selectedBackend = "AIBackendManager_SelectedBackend"
         static let ollamaModel = "AIBackendManager_OllamaModel"
-        static let omlxServerURL = "AIBackendManager_OMLXServerURL"
-        static let omlxModel = "AIBackendManager_OMLXModel"
+        static let endpointURL = "AIBackendManager_EndpointURL"
+        static let endpointModel = "AIBackendManager_EndpointModel"
         static let tinyLLMServerURL = "AIBackendManager_TinyLLMServerURL"
         static let tinyChatServerURL = "AIBackendManager_TinyChatServerURL"
         static let openWebUIServerURL = "AIBackendManager_OpenWebUIServerURL"
@@ -160,8 +160,8 @@ class AIBackendManager: ObservableObject {
         }
 
         selectedOllamaModel = userDefaults.string(forKey: Keys.ollamaModel) ?? "mistral:latest"
-        omlxServerURL = userDefaults.string(forKey: Keys.omlxServerURL) ?? "http://localhost:8000"
-        omlxModel = userDefaults.string(forKey: Keys.omlxModel) ?? "gemma-3-12b"
+        endpointURL = userDefaults.string(forKey: Keys.endpointURL) ?? "http://localhost:8000"
+        endpointModel = userDefaults.string(forKey: Keys.endpointModel) ?? "gemma-3-12b"
         tinyLLMServerURL = userDefaults.string(forKey: Keys.tinyLLMServerURL) ?? "http://localhost:8000"
         tinyChatServerURL = userDefaults.string(forKey: Keys.tinyChatServerURL) ?? "http://localhost:8000"
         openWebUIServerURL = userDefaults.string(forKey: Keys.openWebUIServerURL) ?? "http://localhost:8080"
@@ -175,8 +175,8 @@ class AIBackendManager: ObservableObject {
     func saveSettings() {
         userDefaults.set(selectedBackend.rawValue, forKey: Keys.selectedBackend)
         userDefaults.set(selectedOllamaModel, forKey: Keys.ollamaModel)
-        userDefaults.set(omlxServerURL, forKey: Keys.omlxServerURL)
-        userDefaults.set(omlxModel, forKey: Keys.omlxModel)
+        userDefaults.set(endpointURL, forKey: Keys.endpointURL)
+        userDefaults.set(endpointModel, forKey: Keys.endpointModel)
         userDefaults.set(tinyLLMServerURL, forKey: Keys.tinyLLMServerURL)
         userDefaults.set(tinyChatServerURL, forKey: Keys.tinyChatServerURL)
         userDefaults.set(openWebUIServerURL, forKey: Keys.openWebUIServerURL)
@@ -189,15 +189,15 @@ class AIBackendManager: ObservableObject {
 
     func checkBackendAvailability() async {
         async let ollamaCheck = checkOllamaAvailability()
-        async let omlxCheck = checkOMLXAvailability()
+        async let endpointCheck = checkEndpointAvailability()
         async let tinyLLMCheck = checkTinyLLMAvailability()
         async let tinyChatCheck = checkTinyChatAvailability()
         async let openWebUICheck = checkOpenWebUIAvailability()
 
-        let (ollama, omlx, tinyLLM, tinyChat, openWebUI) = await (ollamaCheck, omlxCheck, tinyLLMCheck, tinyChatCheck, openWebUICheck)
+        let (ollama, endpoint, tinyLLM, tinyChat, openWebUI) = await (ollamaCheck, endpointCheck, tinyLLMCheck, tinyChatCheck, openWebUICheck)
 
         isOllamaAvailable = ollama
-        isOMLXAvailable = omlx
+        isEndpointAvailable = endpoint
         // Apple Foundation Models (on-device + Private Cloud Compute) are macOS 27+.
         if #available(macOS 27.0, *) {
             isOnDeviceAvailable = SystemLanguageModel.default.isAvailable
@@ -218,8 +218,8 @@ class AIBackendManager: ObservableObject {
         switch selectedBackend {
         case .ollama:
             activeBackend = isOllamaAvailable ? .ollama : nil
-        case .omlx:
-            activeBackend = isOMLXAvailable ? .omlx : nil
+        case .openAICompatible:
+            activeBackend = isEndpointAvailable ? .openAICompatible : nil
         case .onDevice:
             activeBackend = isOnDeviceAvailable ? .onDevice : nil
         case .privateCloud:
@@ -240,8 +240,8 @@ class AIBackendManager: ObservableObject {
                 activeBackend = .tinyLLM
             } else if isOpenWebUIAvailable {
                 activeBackend = .openWebUI
-            } else if isOMLXAvailable {
-                activeBackend = .omlx
+            } else if isEndpointAvailable {
+                activeBackend = .openAICompatible
             } else {
                 activeBackend = nil
             }
@@ -331,10 +331,10 @@ class AIBackendManager: ObservableObject {
         }
     }
 
-    private func checkOMLXAvailability() async -> Bool {
-        // The oMLX provider runs through Foundation Models, which is macOS 27+.
+    private func checkEndpointAvailability() async -> Bool {
+        // The OpenAI-compatible endpoint provider runs through Foundation Models, which is macOS 27+.
         guard #available(macOS 27.0, *) else { return false }
-        guard let url = URL(string: omlxServerURL) else { return false }
+        guard let url = URL(string: endpointURL) else { return false }
 
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
@@ -373,25 +373,25 @@ class AIBackendManager: ObservableObject {
                 temperature: temperature,
                 maxTokens: maxTokens
             )
-        case .omlx:
+        case .openAICompatible:
             guard #available(macOS 27.0, *) else {
-                throw AIBackendError.omlxUnavailable
+                throw AIBackendError.endpointUnavailable
             }
-            return try await generateWithOMLX(
+            return try await generateWithEndpoint(
                 prompt: prompt,
                 systemPrompt: systemPrompt,
                 temperature: temperature,
                 maxTokens: maxTokens
             )
         case .onDevice:
-            guard #available(macOS 27.0, *) else { throw AIBackendError.omlxUnavailable }
+            guard #available(macOS 27.0, *) else { throw AIBackendError.endpointUnavailable }
             return try await generate(
                 with: SystemLanguageModel.default,
                 prompt: prompt, systemPrompt: systemPrompt,
                 temperature: temperature, maxTokens: maxTokens
             )
         case .privateCloud:
-            guard #available(macOS 27.0, *) else { throw AIBackendError.omlxUnavailable }
+            guard #available(macOS 27.0, *) else { throw AIBackendError.endpointUnavailable }
             return try await generate(
                 with: PrivateCloudComputeLanguageModel(),
                 prompt: prompt, systemPrompt: systemPrompt,
@@ -465,30 +465,30 @@ class AIBackendManager: ObservableObject {
         return response.response
     }
 
-    // MARK: - oMLX Implementation
+    // MARK: - OpenAI-compatible endpoint Implementation
     //
-    // Runs inference on the local oMLX server through Apple's Foundation Models
+    // Runs inference on the local OpenAI-compatible endpoint server through Apple's Foundation Models
     // (`LanguageModelSession`). This replaces the original MLX backend, which
     // string-interpolated the prompt into a Python script and executed it — an
     // arbitrary-code-execution vulnerability. Prompt content now travels as JSON
-    // over HTTP and is never treated as code. See OMLXLanguageModel / M2.
+    // over HTTP and is never treated as code. See EndpointLanguageModel / M2.
 
     @available(macOS 27.0, *)
-    private func generateWithOMLX(
+    private func generateWithEndpoint(
         prompt: String,
         systemPrompt: String?,
         temperature: Float,
         maxTokens: Int
     ) async throws -> String {
-        guard let baseURL = URL(string: omlxServerURL) else {
+        guard let baseURL = URL(string: endpointURL) else {
             throw AIBackendError.invalidConfiguration
         }
-        let model = OMLXLanguageModel.server(baseURL: baseURL, model: omlxModel)
+        let model = EndpointLanguageModel.server(baseURL: baseURL, model: endpointModel)
         return try await generate(with: model, prompt: prompt, systemPrompt: systemPrompt,
                                   temperature: temperature, maxTokens: maxTokens)
     }
 
-    /// Shared Foundation Models path: drives any LanguageModel (oMLX, Apple
+    /// Shared Foundation Models path: drives any LanguageModel (OpenAI-compatible endpoint, Apple
     /// on-device, or Private Cloud Compute) through a LanguageModelSession.
     @available(macOS 27.0, *)
     private func generate(
@@ -674,11 +674,11 @@ class AIBackendManager: ObservableObject {
         switch backend {
         case .ollama:
             return try await generateEmbeddingsWithOllama(text: text)
-        case .omlx:
-            return try await generateEmbeddingsWithOMLX(text: text)
+        case .openAICompatible:
+            return try await generateEmbeddingsWithEndpoint(text: text)
         case .onDevice, .privateCloud:
             // Apple's text models don't expose embeddings; use a dedicated
-            // embedding provider (e.g. oMLX BGE-M3) for semantic search instead.
+            // embedding provider (e.g. OpenAI-compatible endpoint BGE-M3) for semantic search instead.
             throw AIBackendError.embeddingsNotSupported
         case .tinyLLM:
             return try await generateEmbeddingsWithTinyLLM(text: text)
@@ -717,18 +717,18 @@ class AIBackendManager: ObservableObject {
         return response.embedding
     }
 
-    // oMLX embeddings via the local server's OpenAI-compatible embeddings endpoint.
-    // The dedicated provider (OMLXEmbeddingProvider, BGE-M3) is wired in via the
+    // OpenAI-compatible endpoint embeddings via the local server's OpenAI-compatible embeddings endpoint.
+    // The dedicated provider (OpenAICompatibleEmbeddingProvider, BGE-M3) is wired in via the
     // EmbeddingProvider protocol; this inline path keeps the legacy
-    // AIBackendManager.generateEmbeddings() surface working for the oMLX backend.
-    private func generateEmbeddingsWithOMLX(text: String) async throws -> [Float] {
-        guard let url = URL(string: "\(omlxServerURL)/v1/embeddings") else {
+    // AIBackendManager.generateEmbeddings() surface working for the OpenAI-compatible endpoint backend.
+    private func generateEmbeddingsWithEndpoint(text: String) async throws -> [Float] {
+        guard let url = URL(string: "\(endpointURL)/v1/embeddings") else {
             throw AIBackendError.invalidConfiguration
         }
 
         let requestBody: [String: Any] = [
             "input": text,
-            "model": omlxModel
+            "model": endpointModel
         ]
 
         var request = URLRequest(url: url)
@@ -738,13 +738,13 @@ class AIBackendManager: ObservableObject {
 
         let (data, _) = try await URLSession.shared.data(for: request)
 
-        struct OMLXEmbeddingResponse: Codable {
+        struct EndpointEmbeddingResponse: Codable {
             struct Item: Codable { let embedding: [Float] }
             let data: [Item]
         }
 
         let decoder = JSONDecoder()
-        let response = try decoder.decode(OMLXEmbeddingResponse.self, from: data)
+        let response = try decoder.decode(EndpointEmbeddingResponse.self, from: data)
         return response.data.first?.embedding ?? []
     }
 
@@ -848,19 +848,19 @@ enum AIBackendError: LocalizedError {
     case noBackendAvailable
     case invalidConfiguration
     case invalidState
-    case omlxUnavailable
+    case endpointUnavailable
     case embeddingsNotSupported
 
     var errorDescription: String? {
         switch self {
         case .noBackendAvailable:
-            return "No AI backend available. Start the oMLX server or install Ollama."
+            return "No AI backend available. Start the OpenAI-compatible endpoint server or install Ollama."
         case .invalidConfiguration:
             return "AI backend configuration is invalid."
         case .invalidState:
             return "AI backend is in an invalid state."
-        case .omlxUnavailable:
-            return "The oMLX backend requires macOS 27 (Foundation Models)."
+        case .endpointUnavailable:
+            return "The OpenAI-compatible endpoint backend requires macOS 27 (Foundation Models)."
         case .embeddingsNotSupported:
             return "Embeddings not supported with current backend."
         }
@@ -922,10 +922,10 @@ struct AIBackendSettingsView: View {
 
                 HStack {
                     Image(systemName: "server.rack")
-                    Text("oMLX (Local Server)")
+                    Text("OpenAI-Compatible Endpoint")
                     Spacer()
-                    Text(manager.isOMLXAvailable ? "Available" : "Unavailable")
-                        .foregroundColor(manager.isOMLXAvailable ? .green : .secondary)
+                    Text(manager.isEndpointAvailable ? "Available" : "Unavailable")
+                        .foregroundColor(manager.isEndpointAvailable ? .green : .secondary)
                 }
 
                 HStack {
@@ -981,21 +981,21 @@ struct AIBackendSettingsView: View {
                 }
             }
 
-            if manager.isOMLXAvailable || manager.selectedBackend == .omlx {
-                Section(header: Text("oMLX Configuration")) {
-                    TextField("Server URL", text: $manager.omlxServerURL)
+            if manager.isEndpointAvailable || manager.selectedBackend == .openAICompatible {
+                Section(header: Text("OpenAI-compatible endpoint Configuration")) {
+                    TextField("Server URL", text: $manager.endpointURL)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .onChange(of: manager.omlxServerURL) { _ in
+                        .onChange(of: manager.endpointURL) { _ in
                             manager.saveSettings()
                         }
 
-                    TextField("Model", text: $manager.omlxModel)
+                    TextField("Model", text: $manager.endpointModel)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .onChange(of: manager.omlxModel) { _ in
+                        .onChange(of: manager.endpointModel) { _ in
                             manager.saveSettings()
                         }
 
-                    Text("Runs on the local oMLX server via Foundation Models (macOS 27+).")
+                    Text("Runs on the local OpenAI-compatible endpoint server via Foundation Models (macOS 27+).")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }

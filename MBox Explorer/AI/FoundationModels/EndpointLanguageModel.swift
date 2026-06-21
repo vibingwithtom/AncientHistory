@@ -1,17 +1,17 @@
 //
-//  OMLXLanguageModel.swift
+//  EndpointLanguageModel.swift
 //  Ancient History
 //
-//  The M2 linchpin: conforms the local oMLX server to Apple's Foundation Models
-//  custom-executor API (OS27 beta) so the rest of the app can talk to oMLX through
+//  The M2 linchpin: conforms the local OpenAI-compatible endpoint server to Apple's Foundation Models
+//  custom-executor API (OS27 beta) so the rest of the app can talk to OpenAI-compatible endpoint through
 //  a standard `LanguageModelSession`.
 //
-//    LanguageModelSession(model: OMLXLanguageModel.server(baseURL:model:))
-//        -> OMLXExecutor.respond(to:model:streamingInto:)
-//        -> OMLXEngine.generate(...)  (HTTP to the local oMLX server)
+//    LanguageModelSession(model: EndpointLanguageModel.server(baseURL:model:))
+//        -> EndpointExecutor.respond(to:model:streamingInto:)
+//        -> LLMEngine.generate(...)  (HTTP to the local OpenAI-compatible endpoint server)
 //
-//  This file depends only on FoundationModels + the local `OMLXEngine` protocol,
-//  so it compiles and round-trips in isolation (see OMLXEchoEngine + the M2
+//  This file depends only on FoundationModels + the local `LLMEngine` protocol,
+//  so it compiles and round-trips in isolation (see EchoLLMEngine + the M2
 //  acceptance harness). Everything here is gated to macOS 27 because the
 //  `LanguageModel` / `LanguageModelExecutor` executor API is OS27-only.
 //
@@ -27,14 +27,14 @@ import FoundationModels
 
 // MARK: - Configuration
 
-/// Fully describes how to construct an `OMLXEngine`. Must be `Hashable & Sendable`
+/// Fully describes how to construct an `LLMEngine`. Must be `Hashable & Sendable`
 /// because Foundation Models reconstructs the executor from this value alone.
 @available(macOS 27.0, *)
-struct OMLXConfiguration: Hashable, Sendable {
+struct EndpointConfiguration: Hashable, Sendable {
     /// Which engine backs this model.
     enum Backend: Hashable, Sendable {
-        /// Talk to the local oMLX server over HTTP.
-        case server(baseURL: URL, apiStyle: OMLXServerEngine.APIStyle)
+        /// Talk to the local OpenAI-compatible endpoint server over HTTP.
+        case server(baseURL: URL, apiStyle: OpenAICompatibleEngine.APIStyle)
         /// In-process echo stub used by tests and the M2 acceptance harness.
         case echo
     }
@@ -43,7 +43,7 @@ struct OMLXConfiguration: Hashable, Sendable {
     var modelID: String
     var contextWindow: Int
     /// Reasoning effort used when a request does not specify one via `ContextOptions`.
-    var defaultThinking: OMLXThinkingMode
+    var defaultThinking: LLMThinkingMode
     /// Whether to advertise the `.reasoning` capability.
     var supportsReasoning: Bool
     /// Whether to advertise `.guidedGeneration` (structured `@Generable` output).
@@ -52,7 +52,7 @@ struct OMLXConfiguration: Hashable, Sendable {
     init(backend: Backend,
          modelID: String,
          contextWindow: Int,
-         defaultThinking: OMLXThinkingMode = .off,
+         defaultThinking: LLMThinkingMode = .off,
          supportsReasoning: Bool = true,
          supportsGuidedGeneration: Bool = true) {
         self.backend = backend
@@ -64,39 +64,39 @@ struct OMLXConfiguration: Hashable, Sendable {
     }
 
     /// Build the concrete engine this configuration describes.
-    func makeEngine() -> any OMLXEngine {
+    func makeEngine() -> any LLMEngine {
         switch backend {
         case let .server(baseURL, apiStyle):
-            return OMLXServerEngine(baseURL: baseURL,
+            return OpenAICompatibleEngine(baseURL: baseURL,
                                     modelID: modelID,
                                     contextWindow: contextWindow,
                                     apiStyle: apiStyle)
         case .echo:
-            return OMLXEchoEngine(modelID: modelID, contextWindow: contextWindow)
+            return EchoLLMEngine(modelID: modelID, contextWindow: contextWindow)
         }
     }
 }
 
 // MARK: - LanguageModel
 
-/// A Foundation Models `LanguageModel` backed by the local oMLX server.
+/// A Foundation Models `LanguageModel` backed by the local OpenAI-compatible endpoint server.
 @available(macOS 27.0, *)
-struct OMLXLanguageModel: LanguageModel {
-    typealias Executor = OMLXExecutor
+struct EndpointLanguageModel: LanguageModel {
+    typealias Executor = EndpointExecutor
 
-    let configuration: OMLXConfiguration
+    let configuration: EndpointConfiguration
 
-    init(configuration: OMLXConfiguration) {
+    init(configuration: EndpointConfiguration) {
         self.configuration = configuration
     }
 
-    /// Convenience: a model backed by the local oMLX HTTP server.
+    /// Convenience: a model backed by the local OpenAI-compatible endpoint HTTP server.
     static func server(baseURL: URL,
                        model: String,
                        contextWindow: Int = 8192,
-                       apiStyle: OMLXServerEngine.APIStyle = .openAIChat,
-                       defaultThinking: OMLXThinkingMode = .off) -> OMLXLanguageModel {
-        OMLXLanguageModel(configuration: .init(
+                       apiStyle: OpenAICompatibleEngine.APIStyle = .openAIChat,
+                       defaultThinking: LLMThinkingMode = .off) -> EndpointLanguageModel {
+        EndpointLanguageModel(configuration: .init(
             backend: .server(baseURL: baseURL, apiStyle: apiStyle),
             modelID: model,
             contextWindow: contextWindow,
@@ -104,8 +104,8 @@ struct OMLXLanguageModel: LanguageModel {
     }
 
     /// Convenience: an in-process echo model for tests / the M2 acceptance harness.
-    static func echo(model: String = "omlx-echo", contextWindow: Int = 8192) -> OMLXLanguageModel {
-        OMLXLanguageModel(configuration: .init(
+    static func echo(model: String = "endpoint-echo", contextWindow: Int = 8192) -> EndpointLanguageModel {
+        EndpointLanguageModel(configuration: .init(
             backend: .echo, modelID: model, contextWindow: contextWindow))
     }
 
@@ -116,36 +116,36 @@ struct OMLXLanguageModel: LanguageModel {
         return LanguageModelCapabilities(capabilities: caps)
     }
 
-    var executorConfiguration: OMLXConfiguration { configuration }
+    var executorConfiguration: EndpointConfiguration { configuration }
 }
 
 // MARK: - Executor
 
-/// Drives a single generation: maps the transcript onto an oMLX chat request,
+/// Drives a single generation: maps the transcript onto an OpenAI-compatible endpoint chat request,
 /// streams the result through the Foundation Models channel, and maps failures
 /// onto `LanguageModelError`.
 @available(macOS 27.0, *)
-struct OMLXExecutor: LanguageModelExecutor {
-    typealias Configuration = OMLXConfiguration
-    typealias Model = OMLXLanguageModel
+struct EndpointExecutor: LanguageModelExecutor {
+    typealias Configuration = EndpointConfiguration
+    typealias Model = EndpointLanguageModel
 
-    let configuration: OMLXConfiguration
-    let engine: any OMLXEngine
+    let configuration: EndpointConfiguration
+    let engine: any LLMEngine
 
-    init(configuration: OMLXConfiguration) throws {
+    init(configuration: EndpointConfiguration) throws {
         self.configuration = configuration
         self.engine = configuration.makeEngine()
     }
 
-    func prewarm(model: OMLXLanguageModel, transcript: Transcript) {
-        let messages = OMLXTranscriptMapper.messages(from: transcript)
+    func prewarm(model: EndpointLanguageModel, transcript: Transcript) {
+        let messages = TranscriptChatMapper.messages(from: transcript)
         Task { await engine.prewarm(messages: messages) }
     }
 
     func respond(to request: LanguageModelExecutorGenerationRequest,
-                 model: OMLXLanguageModel,
+                 model: EndpointLanguageModel,
                  streamingInto channel: LanguageModelExecutorGenerationChannel) async throws {
-        let messages = OMLXTranscriptMapper.messages(from: request.transcript)
+        let messages = TranscriptChatMapper.messages(from: request.transcript)
         let params = makeParams(from: request)
 
         // Pre-flight context budgeting: fail fast with a precise error instead of
@@ -155,13 +155,13 @@ struct OMLXExecutor: LanguageModelExecutor {
             throw LanguageModelError.contextSizeExceeded(.init(
                 contextSize: engine.contextWindow,
                 tokenCount: inputTokens,
-                debugDescription: "oMLX request of \(inputTokens) tokens exceeds the "
+                debugDescription: "OpenAI-compatible endpoint request of \(inputTokens) tokens exceeds the "
                     + "\(engine.contextWindow)-token window of model \(engine.modelID)."))
         }
 
         // Handshake: announce the model/run before any deltas arrive.
         await channel.send(.response(action: .updateMetadata([
-            "provider": "oMLX",
+            "provider": "OpenAI-Compatible",
             "model": engine.modelID,
         ])))
 
@@ -186,16 +186,16 @@ struct OMLXExecutor: LanguageModelExecutor {
                         text, tokenCount: engine.tokenCount(for: text))))
                 }
             }
-        } catch let error as OMLXEngineError {
+        } catch let error as LLMEngineError {
             throw Self.languageModelError(for: error)
         }
     }
 
     // MARK: Options mapping
 
-    private func makeParams(from request: LanguageModelExecutorGenerationRequest) -> OMLXGenerationParams {
+    private func makeParams(from request: LanguageModelExecutorGenerationRequest) -> LLMGenerationParams {
         let options = request.generationOptions
-        return OMLXGenerationParams(
+        return LLMGenerationParams(
             temperature: options.temperature,
             maxTokens: options.maximumResponseTokens,
             sampling: Self.sampling(from: options.samplingMode),
@@ -204,7 +204,7 @@ struct OMLXExecutor: LanguageModelExecutor {
             jsonSchema: Self.schemaJSON(request.schema))
     }
 
-    private static func sampling(from mode: GenerationOptions.SamplingMode?) -> OMLXGenerationParams.Sampling? {
+    private static func sampling(from mode: GenerationOptions.SamplingMode?) -> LLMGenerationParams.Sampling? {
         guard let mode else { return nil }
         switch mode.kind {
         case .greedy: return .greedy
@@ -217,7 +217,7 @@ struct OMLXExecutor: LanguageModelExecutor {
     /// Per-request thinking-mode control: a `ContextOptions.reasoningLevel` overrides the
     /// configuration default; absence falls back to the configured default.
     private static func thinking(from contextOptions: ContextOptions,
-                                 default fallback: OMLXThinkingMode) -> OMLXThinkingMode {
+                                 default fallback: LLMThinkingMode) -> LLMThinkingMode {
         guard let level = contextOptions.reasoningLevel else { return fallback }
         switch level {
         case .light: return .light
@@ -237,26 +237,26 @@ struct OMLXExecutor: LanguageModelExecutor {
     // MARK: Error mapping
 
     /// Map an engine failure onto the closest `LanguageModelError` case.
-    static func languageModelError(for error: OMLXEngineError) -> LanguageModelError {
+    static func languageModelError(for error: LLMEngineError) -> LanguageModelError {
         switch error {
         case let .contextOverflow(tokenCount, contextWindow):
             return .contextSizeExceeded(.init(
                 contextSize: contextWindow,
                 tokenCount: tokenCount,
-                debugDescription: "oMLX server reported context overflow "
+                debugDescription: "OpenAI-compatible endpoint server reported context overflow "
                     + "(\(tokenCount)/\(contextWindow) tokens)."))
         case let .refusal(reason):
-            return .refusal(.init(debugDescription: "oMLX server refused: \(reason)"))
+            return .refusal(.init(debugDescription: "OpenAI-compatible endpoint server refused: \(reason)"))
         case let .rateLimited(retryAfter):
             return .rateLimited(.init(
                 resetDate: retryAfter,
-                debugDescription: "oMLX server is rate limiting requests."))
+                debugDescription: "OpenAI-compatible endpoint server is rate limiting requests."))
         case .timeout:
-            return .timeout(.init(debugDescription: "oMLX request timed out."))
+            return .timeout(.init(debugDescription: "OpenAI-compatible endpoint request timed out."))
         case let .unreachable(detail):
-            return .timeout(.init(debugDescription: "oMLX server unreachable: \(detail)"))
+            return .timeout(.init(debugDescription: "OpenAI-compatible endpoint server unreachable: \(detail)"))
         case let .generationFailed(reason):
-            return .refusal(.init(debugDescription: "oMLX generation failed: \(reason)"))
+            return .refusal(.init(debugDescription: "OpenAI-compatible endpoint generation failed: \(reason)"))
         }
     }
 }

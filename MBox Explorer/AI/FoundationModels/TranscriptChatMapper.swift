@@ -1,11 +1,11 @@
 //
-//  OMLXTranscriptMapper.swift
+//  TranscriptChatMapper.swift
 //  Ancient History
 //
-//  Maps a Foundation Models `Transcript` onto an oMLX chat request. This is the
-//  "framework entry types -> oMLX chat roles" half of milestone M2.
+//  Maps a Foundation Models `Transcript` onto an OpenAI-compatible endpoint chat request. This is the
+//  "framework entry types -> OpenAI-compatible endpoint chat roles" half of milestone M2.
 //
-//    Transcript.Entry          oMLX role
+//    Transcript.Entry          OpenAI-compatible endpoint role
 //    -----------------         ---------
 //    .instructions             system
 //    .prompt                   user
@@ -21,11 +21,11 @@ import Foundation
 import FoundationModels
 
 @available(macOS 27.0, *)
-enum OMLXTranscriptMapper {
+enum TranscriptChatMapper {
 
-    /// Flatten a transcript into the chat messages the oMLX server expects.
-    static func messages(from transcript: Transcript) -> [OMLXChatMessage] {
-        var messages: [OMLXChatMessage] = []
+    /// Flatten a transcript into the chat messages the OpenAI-compatible endpoint server expects.
+    static func messages(from transcript: Transcript) -> [LLMChatMessage] {
+        var messages: [LLMChatMessage] = []
         for entry in transcript {
             switch entry {
             case let .instructions(instructions):
