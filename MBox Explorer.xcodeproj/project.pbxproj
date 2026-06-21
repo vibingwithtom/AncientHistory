@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3BC9DEE2E30560C9AF780FB7 /* AtomicFragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC1D23BF3DDCB135FBB559BB /* AtomicFragment.swift */; };
 		AAEBEAF5824548F33BE4756C /* ThreadGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 831CE551CDE73E24F3F945F0 /* ThreadGraph.swift */; };
 		B8EDEE56F4032D22EECD4062 /* ZipExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 458153E6299A968CB6583BCA /* ZipExtractor.swift */; };
 		F0133457F92D333CCAA3E635 /* OpenAICompatibleEmbeddingProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B33E1876AFA33FBA6F64744 /* OpenAICompatibleEmbeddingProvider.swift */; };
@@ -135,6 +136,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		AC1D23BF3DDCB135FBB559BB /* AtomicFragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtomicFragment.swift; sourceTree = "<group>"; };
 		831CE551CDE73E24F3F945F0 /* ThreadGraph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreadGraph.swift; sourceTree = "<group>"; };
 		458153E6299A968CB6583BCA /* ZipExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZipExtractor.swift; sourceTree = "<group>"; };
 		8B33E1876AFA33FBA6F64744 /* OpenAICompatibleEmbeddingProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/Embeddings/OpenAICompatibleEmbeddingProvider.swift"; sourceTree = "<group>"; };
@@ -480,6 +482,7 @@
 		MB0000340000000000000001 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				AC1D23BF3DDCB135FBB559BB /* AtomicFragment.swift */,
 				831CE551CDE73E24F3F945F0 /* ThreadGraph.swift */,
 				NF200015000000000000001 /* TagManager.swift */,
 				NF200022000000000000001 /* SearchHistory.swift */,
@@ -694,6 +697,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3BC9DEE2E30560C9AF780FB7 /* AtomicFragment.swift in Sources */,
 				AAEBEAF5824548F33BE4756C /* ThreadGraph.swift in Sources */,
 				B8EDEE56F4032D22EECD4062 /* ZipExtractor.swift in Sources */,
 				F0133457F92D333CCAA3E635 /* OpenAICompatibleEmbeddingProvider.swift in Sources */,
