@@ -47,12 +47,15 @@ struct ConversationView: View {
                         relationshipsView
                     case .patterns:
                         patternsView
+                    case .explore:
+                        ExploreView(viewModel: viewModel)
                     }
                 }
             }
 
-            // Citations Panel
-            if showCitations && !conversationManager.currentCitations.isEmpty {
+            // Citations Panel — only for the cited-answer (Chat) surface; never
+            // shown for the speculative Explore surface.
+            if showCitations && selectedFeature != .explore && !conversationManager.currentCitations.isEmpty {
                 citationsPanel
                     .frame(minWidth: 250, maxWidth: 350)
             }
@@ -744,6 +747,7 @@ enum ConversationFeature: String, CaseIterable {
     case commitments = "Commitments"
     case relationships = "Relationships"
     case patterns = "Patterns"
+    case explore = "Explore"
 
     var icon: String {
         switch self {
@@ -751,6 +755,7 @@ enum ConversationFeature: String, CaseIterable {
         case .commitments: return "checkmark.circle"
         case .relationships: return "person.2"
         case .patterns: return "chart.bar"
+        case .explore: return "sparkles"
         }
     }
 }

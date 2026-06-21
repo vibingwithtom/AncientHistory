@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		45448947D205D72AD911DB75 /* ExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A6D6C4E189283A97C610D5E /* ExploreView.swift */; };
 		42377A21F1A89A0D26188414 /* HypotheticalExplorer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 577F88E7F9FA3F13649A784B /* HypotheticalExplorer.swift */; };
 		7243A558D924F0F32CDCCA6F /* PersonaSimulator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 223369644F197D4DC3394945 /* PersonaSimulator.swift */; };
 		40CA67B7C070A77BFE166A49 /* SpeculativeResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F0939B03915B3473452DCE4 /* SpeculativeResponse.swift */; };
@@ -141,6 +142,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		1A6D6C4E189283A97C610D5E /* ExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Views/ExploreView.swift"; sourceTree = "<group>"; };
 		577F88E7F9FA3F13649A784B /* HypotheticalExplorer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/Explore/HypotheticalExplorer.swift"; sourceTree = "<group>"; };
 		223369644F197D4DC3394945 /* PersonaSimulator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/Explore/PersonaSimulator.swift"; sourceTree = "<group>"; };
 		3F0939B03915B3473452DCE4 /* SpeculativeResponse.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/Explore/SpeculativeResponse.swift"; sourceTree = "<group>"; };
@@ -339,6 +341,7 @@
 				3CFA614AC3BD8853D16DB6E9 /* ConversationDatabase.swift */,
 				D01A68F1AFCB3C03DB4465E1 /* ConversationManager.swift */,
 				33C069D93706A1E5E158C2D2 /* ConversationView.swift */,
+				1A6D6C4E189283A97C610D5E /* ExploreView.swift */,
 			);
 			name = Conversation;
 			sourceTree = "<group>";
@@ -712,6 +715,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				45448947D205D72AD911DB75 /* ExploreView.swift in Sources */,
 				42377A21F1A89A0D26188414 /* HypotheticalExplorer.swift in Sources */,
 				7243A558D924F0F32CDCCA6F /* PersonaSimulator.swift in Sources */,
 				40CA67B7C070A77BFE166A49 /* SpeculativeResponse.swift in Sources */,
