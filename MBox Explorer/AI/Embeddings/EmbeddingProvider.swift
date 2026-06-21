@@ -53,9 +53,8 @@ enum EmbeddingError: LocalizedError {
 /// Embedding provider type
 enum EmbeddingProviderType: String, CaseIterable, Identifiable {
     case ollama = "Ollama"
-    case mlx = "MLX"
+    case omlx = "oMLX"
     case openai = "OpenAI"
-    case sentenceTransformers = "Sentence Transformers"
     case tinyChat = "TinyChat"
     case openWebUI = "OpenWebUI"
     case none = "None (Keyword Search Only)"
@@ -66,12 +65,10 @@ enum EmbeddingProviderType: String, CaseIterable, Identifiable {
         switch self {
         case .ollama:
             return "Local embeddings via Ollama (free, private)"
-        case .mlx:
-            return "Apple Silicon native via MLX (free, fast)"
+        case .omlx:
+            return "Local oMLX server with BGE-M3 (free, private)"
         case .openai:
             return "Cloud embeddings via OpenAI API (paid, high quality)"
-        case .sentenceTransformers:
-            return "Python sentence-transformers (free, flexible)"
         case .tinyChat:
             return "TinyChat by Jason Cox - OpenAI-compatible (local/cloud)"
         case .openWebUI:
@@ -85,12 +82,10 @@ enum EmbeddingProviderType: String, CaseIterable, Identifiable {
         switch self {
         case .ollama:
             return "brew install ollama && ollama pull nomic-embed-text"
-        case .mlx:
-            return "Included - uses MLX Swift package"
+        case .omlx:
+            return "Run the local oMLX server with a BGE-M3 model"
         case .openai:
             return "Requires OpenAI API key"
-        case .sentenceTransformers:
-            return "pip install sentence-transformers"
         case .tinyChat:
             return "docker run -d -p 8000:8000 jasonacox/tinychat:latest"
         case .openWebUI:
@@ -129,9 +124,8 @@ class EmbeddingManager: ObservableObject {
     @Published var statusMessage = "Checking..."
 
     private var ollamaProvider: OllamaEmbeddingProvider?
-    private var mlxProvider: MLXEmbeddingProvider?
+    private var omlxProvider: OMLXEmbeddingProvider?
     private var openaiProvider: OpenAIEmbeddingProvider?
-    private var pythonProvider: SentenceTransformerProvider?
     private var tinyChatProvider: TinyChatEmbeddingProvider?
     private var openWebUIProvider: OpenWebUIEmbeddingProvider?
 
@@ -143,9 +137,8 @@ class EmbeddingManager: ObservableObject {
 
         // Initialize providers
         ollamaProvider = OllamaEmbeddingProvider()
-        mlxProvider = MLXEmbeddingProvider()
+        omlxProvider = OMLXEmbeddingProvider()
         openaiProvider = OpenAIEmbeddingProvider()
-        pythonProvider = SentenceTransformerProvider()
         tinyChatProvider = TinyChatEmbeddingProvider()
         openWebUIProvider = OpenWebUIEmbeddingProvider()
 
@@ -165,15 +158,12 @@ class EmbeddingManager: ObservableObject {
         case .ollama:
             await ollamaProvider?.checkAvailability()
             provider = ollamaProvider
-        case .mlx:
-            await mlxProvider?.checkAvailability()
-            provider = mlxProvider
+        case .omlx:
+            await omlxProvider?.checkAvailability()
+            provider = omlxProvider
         case .openai:
             await openaiProvider?.checkAvailability()
             provider = openaiProvider
-        case .sentenceTransformers:
-            await pythonProvider?.checkAvailability()
-            provider = pythonProvider
         case .tinyChat:
             await tinyChatProvider?.checkAvailability()
             provider = tinyChatProvider

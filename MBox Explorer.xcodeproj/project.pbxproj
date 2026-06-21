@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F0133457F92D333CCAA3E635 /* OMLXEmbeddingProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B33E1876AFA33FBA6F64744 /* OMLXEmbeddingProvider.swift */; };
 		F3EAF0ED2BD9E12067C2879F /* OMLXEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A723031B9C1E0CE18B1D9CC7 /* OMLXEngine.swift */; };
 		98B3CC93CD924EE94A3286C5 /* OMLXLanguageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D846C16D1815B09DD20EE9FF /* OMLXLanguageModel.swift */; };
 		994D2A53FF942799F0F8C77A /* OMLXTranscriptMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DD7DE7FCD9BB82633B7A688 /* OMLXTranscriptMapper.swift */; };
@@ -88,9 +89,7 @@
 		E8CEF1C0C22D223F3665AE40 /* MBox Explorer Widget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 93353036E959F4AF619A7F93 /* MBox Explorer Widget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		EMB001010000000000000001 /* EmbeddingProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = EMB002010000000000000001 /* EmbeddingProvider.swift */; };
 		EMB001020000000000000001 /* OllamaEmbeddingProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = EMB002020000000000000001 /* OllamaEmbeddingProvider.swift */; };
-		EMB001030000000000000001 /* MLXEmbeddingProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = EMB002030000000000000001 /* MLXEmbeddingProvider.swift */; };
 		EMB001040000000000000001 /* OpenAIEmbeddingProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = EMB002040000000000000001 /* OpenAIEmbeddingProvider.swift */; };
-		EMB001050000000000000001 /* SentenceTransformerProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = EMB002050000000000000001 /* SentenceTransformerProvider.swift */; };
 		F9C2F929F356DB18CE9FBA36 /* VectorDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3533E5F905952EC4B14E8BD9 /* VectorDatabase.swift */; };
 		MB0000010000000000000001 /* MBox_ExplorerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = MB0000020000000000000001 /* MBox_ExplorerApp.swift */; };
 		MB0000030000000000000001 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = MB0000040000000000000001 /* ContentView.swift */; };
@@ -174,6 +173,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		8B33E1876AFA33FBA6F64744 /* OMLXEmbeddingProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/Embeddings/OMLXEmbeddingProvider.swift"; sourceTree = "<group>"; };
 		A723031B9C1E0CE18B1D9CC7 /* OMLXEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/FoundationModels/OMLXEngine.swift"; sourceTree = "<group>"; };
 		D846C16D1815B09DD20EE9FF /* OMLXLanguageModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/FoundationModels/OMLXLanguageModel.swift"; sourceTree = "<group>"; };
 		5DD7DE7FCD9BB82633B7A688 /* OMLXTranscriptMapper.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/FoundationModels/OMLXTranscriptMapper.swift"; sourceTree = "<group>"; };
@@ -255,9 +255,7 @@
 		D7B7B96F86F1ADEC6BEC7ABC /* ImageGenerationUnified.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ImageGenerationUnified.swift; path = AICapabilities/ImageGenerationUnified.swift; sourceTree = "<group>"; };
 		EMB002010000000000000001 /* EmbeddingProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = EmbeddingProvider.swift; path = AI/Embeddings/EmbeddingProvider.swift; sourceTree = "<group>"; };
 		EMB002020000000000000001 /* OllamaEmbeddingProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = OllamaEmbeddingProvider.swift; path = AI/Embeddings/OllamaEmbeddingProvider.swift; sourceTree = "<group>"; };
-		EMB002030000000000000001 /* MLXEmbeddingProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MLXEmbeddingProvider.swift; path = AI/Embeddings/MLXEmbeddingProvider.swift; sourceTree = "<group>"; };
 		EMB002040000000000000001 /* OpenAIEmbeddingProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = OpenAIEmbeddingProvider.swift; path = AI/Embeddings/OpenAIEmbeddingProvider.swift; sourceTree = "<group>"; };
-		EMB002050000000000000001 /* SentenceTransformerProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SentenceTransformerProvider.swift; path = AI/Embeddings/SentenceTransformerProvider.swift; sourceTree = "<group>"; };
 		MB0000020000000000000001 /* MBox_ExplorerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MBox_ExplorerApp.swift; sourceTree = "<group>"; };
 		MB0000040000000000000001 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		MB0000060000000000000001 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
@@ -465,11 +463,10 @@
 		EMB003000000000000000001 /* Embeddings */ = {
 			isa = PBXGroup;
 			children = (
+				8B33E1876AFA33FBA6F64744 /* OMLXEmbeddingProvider.swift */,
 				EMB002010000000000000001 /* EmbeddingProvider.swift */,
 				EMB002020000000000000001 /* OllamaEmbeddingProvider.swift */,
-				EMB002030000000000000001 /* MLXEmbeddingProvider.swift */,
 				EMB002040000000000000001 /* OpenAIEmbeddingProvider.swift */,
-				EMB002050000000000000001 /* SentenceTransformerProvider.swift */,
 				D49684E8221083E6F0CE2A0E /* TinyChatEmbeddingProvider.swift */,
 				079E96CC45CDE63932C5618D /* OpenWebUIEmbeddingProvider.swift */,
 			);
@@ -828,6 +825,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F0133457F92D333CCAA3E635 /* OMLXEmbeddingProvider.swift in Sources */,
 				F3EAF0ED2BD9E12067C2879F /* OMLXEngine.swift in Sources */,
 				98B3CC93CD924EE94A3286C5 /* OMLXLanguageModel.swift in Sources */,
 				994D2A53FF942799F0F8C77A /* OMLXTranscriptMapper.swift in Sources */,
@@ -913,9 +911,7 @@
 				8238508A80546774B50AD050 /* ConversationView.swift in Sources */,
 				EMB001010000000000000001 /* EmbeddingProvider.swift in Sources */,
 				EMB001020000000000000001 /* OllamaEmbeddingProvider.swift in Sources */,
-				EMB001030000000000000001 /* MLXEmbeddingProvider.swift in Sources */,
 				EMB001040000000000000001 /* OpenAIEmbeddingProvider.swift in Sources */,
-				EMB001050000000000000001 /* SentenceTransformerProvider.swift in Sources */,
 				NF100001000000000000001 /* ThreadSummarizer.swift in Sources */,
 				NF100002000000000000001 /* ActionItemExtractor.swift in Sources */,
 				NF100003000000000000001 /* PersonProfileGenerator.swift in Sources */,
