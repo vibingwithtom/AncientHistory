@@ -231,7 +231,10 @@ class AIBackendManager: ObservableObject {
         case .openWebUI:
             activeBackend = isOpenWebUIAvailable ? .openWebUI : nil
         case .auto:
-            // Prefer Ollama, fallback to TinyChat/TinyLLM/OpenWebUI, then MLX
+            // Prefer a running local/HTTP backend, then the OpenAI-compatible
+            // endpoint, then fall back to Apple's on-device model (always present
+            // on macOS 27 with assets installed, needs no server), and finally
+            // Private Cloud Compute.
             if isOllamaAvailable {
                 activeBackend = .ollama
             } else if isTinyChatAvailable {
@@ -242,6 +245,10 @@ class AIBackendManager: ObservableObject {
                 activeBackend = .openWebUI
             } else if isEndpointAvailable {
                 activeBackend = .openAICompatible
+            } else if isOnDeviceAvailable {
+                activeBackend = .onDevice
+            } else if isPrivateCloudAvailable {
+                activeBackend = .privateCloud
             } else {
                 activeBackend = nil
             }
@@ -926,6 +933,22 @@ struct AIBackendSettingsView: View {
                     Spacer()
                     Text(manager.isEndpointAvailable ? "Available" : "Unavailable")
                         .foregroundColor(manager.isEndpointAvailable ? .green : .secondary)
+                }
+
+                HStack {
+                    Image(systemName: "cpu")
+                    Text("On-Device (Apple)")
+                    Spacer()
+                    Text(manager.isOnDeviceAvailable ? "Available" : "Unavailable")
+                        .foregroundColor(manager.isOnDeviceAvailable ? .green : .secondary)
+                }
+
+                HStack {
+                    Image(systemName: "lock.icloud")
+                    Text("Private Cloud Compute")
+                    Spacer()
+                    Text(manager.isPrivateCloudAvailable ? "Available" : "Unavailable")
+                        .foregroundColor(manager.isPrivateCloudAvailable ? .green : .secondary)
                 }
 
                 HStack {
