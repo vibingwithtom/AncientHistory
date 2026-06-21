@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E827EF6D575C4A1D19DA5712 /* EvalHarness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 901C11A65E827B4A2FD75FF2 /* EvalHarness.swift */; };
+		407D8FA1382453A44BCBE142 /* CitedAnswer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F051313E92889BBD9CDCB801 /* CitedAnswer.swift */; };
 		3BC9DEE2E30560C9AF780FB7 /* AtomicFragment.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC1D23BF3DDCB135FBB559BB /* AtomicFragment.swift */; };
 		AAEBEAF5824548F33BE4756C /* ThreadGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 831CE551CDE73E24F3F945F0 /* ThreadGraph.swift */; };
 		B8EDEE56F4032D22EECD4062 /* ZipExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 458153E6299A968CB6583BCA /* ZipExtractor.swift */; };
@@ -136,6 +138,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		901C11A65E827B4A2FD75FF2 /* EvalHarness.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/FoundationModels/EvalHarness.swift"; sourceTree = "<group>"; };
+		F051313E92889BBD9CDCB801 /* CitedAnswer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/FoundationModels/CitedAnswer.swift"; sourceTree = "<group>"; };
 		AC1D23BF3DDCB135FBB559BB /* AtomicFragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtomicFragment.swift; sourceTree = "<group>"; };
 		831CE551CDE73E24F3F945F0 /* ThreadGraph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreadGraph.swift; sourceTree = "<group>"; };
 		458153E6299A968CB6583BCA /* ZipExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZipExtractor.swift; sourceTree = "<group>"; };
@@ -275,6 +279,8 @@
 		54503A623328C982A327062B /* AI */ = {
 			isa = PBXGroup;
 			children = (
+				901C11A65E827B4A2FD75FF2 /* EvalHarness.swift */,
+				F051313E92889BBD9CDCB801 /* CitedAnswer.swift */,
 				A723031B9C1E0CE18B1D9CC7 /* LLMEngine.swift */,
 				D846C16D1815B09DD20EE9FF /* EndpointLanguageModel.swift */,
 				5DD7DE7FCD9BB82633B7A688 /* TranscriptChatMapper.swift */,
@@ -697,6 +703,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E827EF6D575C4A1D19DA5712 /* EvalHarness.swift in Sources */,
+				407D8FA1382453A44BCBE142 /* CitedAnswer.swift in Sources */,
 				3BC9DEE2E30560C9AF780FB7 /* AtomicFragment.swift in Sources */,
 				AAEBEAF5824548F33BE4756C /* ThreadGraph.swift in Sources */,
 				B8EDEE56F4032D22EECD4062 /* ZipExtractor.swift in Sources */,
