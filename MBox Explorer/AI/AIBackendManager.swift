@@ -187,18 +187,8 @@ class AIBackendManager: ObservableObject {
 
     // MARK: - Backend Availability Checking
 
-    func checkBackendAvailability() async {
-        async let ollamaCheck = checkOllamaAvailability()
-        async let endpointCheck = checkEndpointAvailability()
-        async let tinyLLMCheck = checkTinyLLMAvailability()
-        async let tinyChatCheck = checkTinyChatAvailability()
-        async let openWebUICheck = checkOpenWebUIAvailability()
-
-        let (ollama, endpoint, tinyLLM, tinyChat, openWebUI) = await (ollamaCheck, endpointCheck, tinyLLMCheck, tinyChatCheck, openWebUICheck)
-
-        isOllamaAvailable = ollama
-        isEndpointAvailable = endpoint
-        // Apple Foundation Models (on-device + Private Cloud Compute) are macOS 27+.
+    /// Apple model availability is a local capability check — no network.
+    private func refreshAppleAvailability() {
         if #available(macOS 27.0, *) {
             isOnDeviceAvailable = SystemLanguageModel.default.isAvailable
             isPrivateCloudAvailable = PrivateCloudComputeLanguageModel().isAvailable
@@ -206,9 +196,65 @@ class AIBackendManager: ObservableObject {
             isOnDeviceAvailable = false
             isPrivateCloudAvailable = false
         }
+    }
+
+    /// Probe every HTTP/server backend. Only used to populate the settings status
+    /// list (see refreshAllBackends); normal operation avoids these network calls.
+    private func refreshServerBackends() async {
+        async let ollamaCheck = checkOllamaAvailability()
+        async let endpointCheck = checkEndpointAvailability()
+        async let tinyLLMCheck = checkTinyLLMAvailability()
+        async let tinyChatCheck = checkTinyChatAvailability()
+        async let openWebUICheck = checkOpenWebUIAvailability()
+        let (ollama, endpoint, tinyLLM, tinyChat, openWebUI) =
+            await (ollamaCheck, endpointCheck, tinyLLMCheck, tinyChatCheck, openWebUICheck)
+        isOllamaAvailable = ollama
+        isEndpointAvailable = endpoint
         isTinyLLMAvailable = tinyLLM
         isTinyChatAvailable = tinyChat
         isOpenWebUIAvailable = openWebUI
+    }
+
+    /// Full scan of every backend, for the settings "Backend Status" list.
+    func refreshAllBackends() async {
+        refreshAppleAvailability()
+        await refreshServerBackends()
+        determineActiveBackend()
+    }
+
+    /// Probe just the OpenAI-compatible endpoint (settings "Test" button / URL edit).
+    func checkEndpoint() async {
+        isEndpointAvailable = await checkEndpointAvailability()
+        determineActiveBackend()
+    }
+
+    /// Routine availability check used on launch and when the selection changes.
+    /// Only probes the backend the current selection actually needs — so the
+    /// Apple on-device path makes no network calls to LLM servers that aren't
+    /// running. (Use refreshAllBackends() to scan everything for the settings UI.)
+    func checkBackendAvailability() async {
+        refreshAppleAvailability()   // local, no network
+
+        switch selectedBackend {
+        case .onDevice, .privateCloud:
+            break   // Apple availability already set above; no servers to probe
+        case .ollama:
+            isOllamaAvailable = await checkOllamaAvailability()
+        case .openAICompatible:
+            isEndpointAvailable = await checkEndpointAvailability()
+        case .tinyLLM:
+            isTinyLLMAvailable = await checkTinyLLMAvailability()
+        case .tinyChat:
+            isTinyChatAvailable = await checkTinyChatAvailability()
+        case .openWebUI:
+            isOpenWebUIAvailable = await checkOpenWebUIAvailability()
+        case .auto:
+            // Auto prefers the on-device model; only fall back to probing servers
+            // when no Apple model is available.
+            if !isOnDeviceAvailable && !isPrivateCloudAvailable {
+                await refreshServerBackends()
+            }
+        }
 
         // Determine active backend
         determineActiveBackend()

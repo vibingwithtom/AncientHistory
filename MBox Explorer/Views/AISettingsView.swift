@@ -156,7 +156,7 @@ struct AISettingsView: View {
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .onChange(of: aiBackend.endpointURL) { _ in
                                 aiBackend.saveSettings()
-                                Task { await aiBackend.checkBackendAvailability() }
+                                Task { await aiBackend.checkEndpoint() }
                             }
 
                         TextField("Model (e.g. gemma-3-12b)", text: $aiBackend.endpointModel)
@@ -174,7 +174,7 @@ struct AISettingsView: View {
                                 .foregroundColor(aiBackend.isEndpointAvailable ? .green : .gray)
                             Spacer()
                             Button("Test") {
-                                Task { await aiBackend.checkBackendAvailability() }
+                                Task { await aiBackend.checkEndpoint() }
                             }
                         }
 
@@ -469,6 +469,9 @@ struct AISettingsView: View {
         .frame(minWidth: 550, minHeight: 600)
         .onAppear {
             loadSettings()
+            // Populate the full Backend Status list only while settings is open;
+            // normal app use checks just the selected backend.
+            Task { await aiBackend.refreshAllBackends() }
         }
     }
 
