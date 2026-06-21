@@ -17,28 +17,25 @@ import Foundation
 
 /// Embedding provider that calls the local OpenAI-compatible endpoint server for BGE-M3 embeddings.
 class OpenAICompatibleEmbeddingProvider: EmbeddingProvider, ObservableObject {
-    let name = "OpenAI-Compatible (BGE-M3)"
+    let name = "OpenAI-Compatible Endpoint"
 
     @Published var isAvailable = false
 
-    /// BGE-M3 produces 1024-dimensional dense embeddings.
-    let embeddingDimension = 1024
+    /// Dimension is learned from the server's first embedding response (defaults
+    /// to a common size until then), so any embedding model works — not just BGE-M3.
+    @Published var embeddingDimension = 1024
 
-    /// The embedding model identifier requested from the server.
-    let model: String
+    /// Server URL + embedding model, read live from the AIBackendManager settings
+    /// so changing them takes effect without rebuilding the provider.
+    private var baseURL: String {
+        UserDefaults.standard.string(forKey: "AIBackendManager_EndpointURL") ?? "http://localhost:8000"
+    }
+    private var model: String {
+        UserDefaults.standard.string(forKey: "AIBackendManager_EndpointEmbeddingModel") ?? "bge-m3"
+    }
 
     /// Fold the model into the identity so switching models is detected.
     var modelIdentifier: String { "OpenAI-Compatible:\(model)" }
-
-    private let baseURL: String
-
-    init(baseURL: String? = nil, model: String = "bge-m3") {
-        // Share the OpenAI-compatible endpoint server URL with AIBackendManager's setting when present.
-        self.baseURL = baseURL
-            ?? UserDefaults.standard.string(forKey: "AIBackendManager_EndpointURL")
-            ?? "http://localhost:8000"
-        self.model = model
-    }
 
     func checkAvailability() async {
         guard let url = URL(string: baseURL) else {
@@ -98,8 +95,9 @@ class OpenAICompatibleEmbeddingProvider: EmbeddingProvider, ObservableObject {
         let ordered = decoded.data.sorted { ($0.index ?? 0) < ($1.index ?? 0) }
         let vectors = ordered.map { $0.embedding }
 
-        for vector in vectors where !vector.isEmpty && vector.count != embeddingDimension {
-            throw EmbeddingError.dimensionMismatch(expected: embeddingDimension, got: vector.count)
+        // Learn the model's dimension from the response (whatever model is set).
+        if let dim = vectors.first(where: { !$0.isEmpty })?.count, dim != embeddingDimension {
+            await MainActor.run { embeddingDimension = dim }
         }
         return vectors
     }

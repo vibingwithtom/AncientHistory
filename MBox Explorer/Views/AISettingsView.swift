@@ -152,18 +152,41 @@ struct AISettingsView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
 
-                        TextField("Server URL (e.g. http://localhost:8000)", text: $aiBackend.endpointURL)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .onChange(of: aiBackend.endpointURL) { _ in
-                                aiBackend.saveSettings()
-                                Task { await aiBackend.checkEndpoint() }
+                        HStack {
+                            TextField("Server URL (e.g. http://localhost:8000)", text: $aiBackend.endpointURL)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .onChange(of: aiBackend.endpointURL) { _ in
+                                    aiBackend.saveSettings()
+                                    Task { await aiBackend.checkEndpoint() }
+                                }
+                            Button("Fetch Models") {
+                                Task { await aiBackend.fetchEndpointModels() }
                             }
+                        }
 
-                        TextField("Model (e.g. gemma-3-12b)", text: $aiBackend.endpointModel)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .onChange(of: aiBackend.endpointModel) { _ in
-                                aiBackend.saveSettings()
+                        // Chat model — picker when the server advertised models, else free text.
+                        if aiBackend.availableEndpointModels.isEmpty {
+                            TextField("Chat model (e.g. gemma-3-12b)", text: $aiBackend.endpointModel)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .onChange(of: aiBackend.endpointModel) { _ in aiBackend.saveSettings() }
+                        } else {
+                            Picker("Chat model", selection: $aiBackend.endpointModel) {
+                                ForEach(aiBackend.availableEndpointModels, id: \.self) { Text($0).tag($0) }
                             }
+                            .onChange(of: aiBackend.endpointModel) { _ in aiBackend.saveSettings() }
+                        }
+
+                        // Embedding model — separate from chat (semantic search).
+                        if aiBackend.availableEndpointModels.isEmpty {
+                            TextField("Embedding model (e.g. bge-m3)", text: $aiBackend.endpointEmbeddingModel)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .onChange(of: aiBackend.endpointEmbeddingModel) { _ in aiBackend.saveSettings() }
+                        } else {
+                            Picker("Embedding model", selection: $aiBackend.endpointEmbeddingModel) {
+                                ForEach(aiBackend.availableEndpointModels, id: \.self) { Text($0).tag($0) }
+                            }
+                            .onChange(of: aiBackend.endpointEmbeddingModel) { _ in aiBackend.saveSettings() }
+                        }
 
                         HStack {
                             Circle()
@@ -172,13 +195,15 @@ struct AISettingsView: View {
                             Text(aiBackend.isEndpointAvailable ? "Reachable" : "Not detected")
                                 .font(.caption)
                                 .foregroundColor(aiBackend.isEndpointAvailable ? .green : .gray)
-                            Spacer()
-                            Button("Test") {
-                                Task { await aiBackend.checkEndpoint() }
+                            if !aiBackend.availableEndpointModels.isEmpty {
+                                Text("· \(aiBackend.availableEndpointModels.count) models")
+                                    .font(.caption).foregroundColor(.secondary)
                             }
+                            Spacer()
+                            Button("Test") { Task { await aiBackend.checkEndpoint() } }
                         }
 
-                        Text("Posts to {URL}/v1/chat/completions. Requests run via Foundation Models on macOS 27.")
+                        Text("Chat runs via Foundation Models (macOS 27). To use this server for semantic search too, set the Embedding Provider above to \"OpenAI-Compatible\".")
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }

@@ -108,7 +108,10 @@ class AIBackendManager: ObservableObject {
 
     // OpenAI-compatible endpoint-specific (local model server)
     @Published var endpointURL: String = "http://localhost:8000"
-    @Published var endpointModel: String = "gemma-3-12b"
+    @Published var endpointModel: String = "gemma-3-12b"          // chat / generation
+    @Published var endpointEmbeddingModel: String = "bge-m3"      // embeddings
+    /// Models advertised by the endpoint's /v1/models, for the settings pickers.
+    @Published var availableEndpointModels: [String] = []
 
     // TinyLLM-specific (Jason Cox)
     @Published var tinyLLMServerURL: String = "http://localhost:8000"
@@ -134,6 +137,7 @@ class AIBackendManager: ObservableObject {
         static let ollamaModel = "AIBackendManager_OllamaModel"
         static let endpointURL = "AIBackendManager_EndpointURL"
         static let endpointModel = "AIBackendManager_EndpointModel"
+        static let endpointEmbeddingModel = "AIBackendManager_EndpointEmbeddingModel"
         static let tinyLLMServerURL = "AIBackendManager_TinyLLMServerURL"
         static let tinyChatServerURL = "AIBackendManager_TinyChatServerURL"
         static let openWebUIServerURL = "AIBackendManager_OpenWebUIServerURL"
@@ -162,6 +166,7 @@ class AIBackendManager: ObservableObject {
         selectedOllamaModel = userDefaults.string(forKey: Keys.ollamaModel) ?? "mistral:latest"
         endpointURL = userDefaults.string(forKey: Keys.endpointURL) ?? "http://localhost:8000"
         endpointModel = userDefaults.string(forKey: Keys.endpointModel) ?? "gemma-3-12b"
+        endpointEmbeddingModel = userDefaults.string(forKey: Keys.endpointEmbeddingModel) ?? "bge-m3"
         tinyLLMServerURL = userDefaults.string(forKey: Keys.tinyLLMServerURL) ?? "http://localhost:8000"
         tinyChatServerURL = userDefaults.string(forKey: Keys.tinyChatServerURL) ?? "http://localhost:8000"
         openWebUIServerURL = userDefaults.string(forKey: Keys.openWebUIServerURL) ?? "http://localhost:8080"
@@ -177,6 +182,7 @@ class AIBackendManager: ObservableObject {
         userDefaults.set(selectedOllamaModel, forKey: Keys.ollamaModel)
         userDefaults.set(endpointURL, forKey: Keys.endpointURL)
         userDefaults.set(endpointModel, forKey: Keys.endpointModel)
+        userDefaults.set(endpointEmbeddingModel, forKey: Keys.endpointEmbeddingModel)
         userDefaults.set(tinyLLMServerURL, forKey: Keys.tinyLLMServerURL)
         userDefaults.set(tinyChatServerURL, forKey: Keys.tinyChatServerURL)
         userDefaults.set(openWebUIServerURL, forKey: Keys.openWebUIServerURL)
@@ -250,6 +256,39 @@ class AIBackendManager: ObservableObject {
     func checkEndpoint() async {
         isEndpointAvailable = await checkEndpointAvailability()
         determineActiveBackend()
+    }
+
+    /// Fetch the models the endpoint advertises (GET {url}/v1/models) so the
+    /// settings UI can offer chat/embedding model pickers. Also confirms the
+    /// server is reachable. Returns the model ids (also stored in
+    /// availableEndpointModels).
+    @discardableResult
+    func fetchEndpointModels() async -> [String] {
+        guard let url = URL(string: "\(endpointURL)/v1/models") else { return [] }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 5
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard (response as? HTTPURLResponse)?.statusCode == 200 else {
+                isEndpointAvailable = false
+                return []
+            }
+            // OpenAI shape: { "data": [ { "id": "..." }, ... ] }
+            let ids: [String]
+            if let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let items = root["data"] as? [[String: Any]] {
+                ids = items.compactMap { $0["id"] as? String }.sorted()
+            } else {
+                ids = []
+            }
+            availableEndpointModels = ids
+            isEndpointAvailable = true
+            determineActiveBackend()
+            return ids
+        } catch {
+            isEndpointAvailable = false
+            return []
+        }
     }
 
     /// Routine availability check used on launch and when the selection changes.
