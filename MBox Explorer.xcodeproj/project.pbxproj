@@ -202,7 +202,7 @@
 		6CEE96C78F48CEB6C7304C75 /* VoiceConversation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VoiceConversation.swift; path = AI/Advanced/VoiceConversation.swift; sourceTree = "<group>"; };
 		6F4FE314B120E4916E4FEA7A /* HypotheticalAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HypotheticalAnalyzer.swift; path = AI/Advanced/HypotheticalAnalyzer.swift; sourceTree = "<group>"; };
 		715C422C0916234B2233911C /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/Cocoa.framework; sourceTree = DEVELOPER_DIR; };
-		7293E3CDEBC8AE4091F8ABC5 /* NovaAPIServer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "/Volumes/Data/xcode/MBox Explorer/MBox Explorer/NovaAPIServer.swift"; sourceTree = "<absolute>"; };
+		7293E3CDEBC8AE4091F8ABC5 /* NovaAPIServer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NovaAPIServer.swift; sourceTree = "<group>"; };
 		73151335A5C4EA6609FAC1C8 /* SmartForwarder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SmartForwarder.swift; path = AI/Integration/SmartForwarder.swift; sourceTree = "<group>"; };
 		747630C04E4FCF77DDE62867 /* DecisionArchaeologist.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DecisionArchaeologist.swift; path = AI/Analysis/DecisionArchaeologist.swift; sourceTree = "<group>"; };
 		7A626555D09AC8D8B0588A12 /* SentimentAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SentimentAnalyzer.swift; path = AI/Analysis/SentimentAnalyzer.swift; sourceTree = "<group>"; };
@@ -737,10 +737,6 @@
 			);
 			name = "MBox Explorer";
 			packageProductDependencies = (
-				9D34114BC0FE26AAA5C473C1 /* MLX */,
-				402E7DA516D5635702279904 /* MLXNN */,
-				5F831EE85EAF7172D784C0A2 /* MLXLLM */,
-				E55044BCE97A1428C9C735D4 /* MLXLMCommon */,
 			);
 			productName = "MBox Explorer";
 			productReference = MB0000270000000000000001 /* MBox Explorer.app */;
@@ -771,8 +767,6 @@
 			);
 			mainGroup = MB0000290000000000000001;
 			packageReferences = (
-				B56769C4D9893B4022FF6C4F /* XCRemoteSwiftPackageReference "mlx-swift" */,
-				E50B584BE2238E76F0CE456C /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
 			);
 			productRefGroup = MB0000310000000000000001 /* Products */;
 			projectDirPath = "";
@@ -1300,45 +1294,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		B56769C4D9893B4022FF6C4F /* XCRemoteSwiftPackageReference "mlx-swift" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/ml-explore/mlx-swift";
-			requirement = {
-				kind = upToNextMinorVersion;
-				minimumVersion = 0.30.3;
-			};
-		};
-		E50B584BE2238E76F0CE456C /* XCRemoteSwiftPackageReference "mlx-swift-lm" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/ml-explore/mlx-swift-lm";
-			requirement = {
-				kind = upToNextMinorVersion;
-				minimumVersion = 2.30.3;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		402E7DA516D5635702279904 /* MLXNN */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = B56769C4D9893B4022FF6C4F /* XCRemoteSwiftPackageReference "mlx-swift" */;
-			productName = MLXNN;
-		};
-		5F831EE85EAF7172D784C0A2 /* MLXLLM */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E50B584BE2238E76F0CE456C /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
-			productName = MLXLLM;
-		};
-		9D34114BC0FE26AAA5C473C1 /* MLX */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = B56769C4D9893B4022FF6C4F /* XCRemoteSwiftPackageReference "mlx-swift" */;
-			productName = MLX;
-		};
-		E55044BCE97A1428C9C735D4 /* MLXLMCommon */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E50B584BE2238E76F0CE456C /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
-			productName = MLXLMCommon;
-		};
 /* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = MB0000410000000000000001 /* Project object */;
