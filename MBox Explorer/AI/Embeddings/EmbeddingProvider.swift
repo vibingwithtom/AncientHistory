@@ -146,8 +146,9 @@ class EmbeddingManager: ObservableObject {
     private var activeProvider: EmbeddingProvider?
 
     private init() {
-        let savedProvider = UserDefaults.standard.string(forKey: "EmbeddingManager_SelectedProvider") ?? "Ollama"
-        self.selectedProvider = EmbeddingProviderType(rawValue: savedProvider) ?? .ollama
+        // Default to Apple's on-device embeddings (no server required).
+        let savedProvider = UserDefaults.standard.string(forKey: "EmbeddingManager_SelectedProvider") ?? EmbeddingProviderType.appleNL.rawValue
+        self.selectedProvider = EmbeddingProviderType(rawValue: savedProvider) ?? .appleNL
 
         // Initialize providers
         ollamaProvider = OllamaEmbeddingProvider()

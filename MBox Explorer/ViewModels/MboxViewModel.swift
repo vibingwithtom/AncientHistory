@@ -268,6 +268,13 @@ class MboxViewModel: ObservableObject {
         statusMessage = "Loading MBOX file..."
         currentFileURL = url
 
+        // Under the app sandbox, a user-selected file (from the open panel or a
+        // resolved security-scoped bookmark) must be explicitly claimed before it
+        // can be read, otherwise the read fails with "you don't have permission to
+        // view it". Hold access for the duration of the parse.
+        let didAccess = url.startAccessingSecurityScopedResource()
+        defer { if didAccess { url.stopAccessingSecurityScopedResource() } }
+
         do {
             emails = try await parser.parse(fileURL: url)
             statusMessage = "Detecting threads..."

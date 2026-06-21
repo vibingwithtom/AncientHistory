@@ -231,11 +231,13 @@ class AIBackendManager: ObservableObject {
         case .openWebUI:
             activeBackend = isOpenWebUIAvailable ? .openWebUI : nil
         case .auto:
-            // Prefer a running local/HTTP backend, then the OpenAI-compatible
-            // endpoint, then fall back to Apple's on-device model (always present
-            // on macOS 27 with assets installed, needs no server), and finally
-            // Private Cloud Compute.
-            if isOllamaAvailable {
+            // Prefer Apple's on-device model (private, no server, always present
+            // on macOS 27 with assets installed), then a running local/HTTP
+            // backend, then the OpenAI-compatible endpoint, then Private Cloud
+            // Compute.
+            if isOnDeviceAvailable {
+                activeBackend = .onDevice
+            } else if isOllamaAvailable {
                 activeBackend = .ollama
             } else if isTinyChatAvailable {
                 activeBackend = .tinyChat
@@ -245,8 +247,6 @@ class AIBackendManager: ObservableObject {
                 activeBackend = .openWebUI
             } else if isEndpointAvailable {
                 activeBackend = .openAICompatible
-            } else if isOnDeviceAvailable {
-                activeBackend = .onDevice
             } else if isPrivateCloudAvailable {
                 activeBackend = .privateCloud
             } else {
