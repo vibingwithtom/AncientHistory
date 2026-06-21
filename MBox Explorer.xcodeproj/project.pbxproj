@@ -980,7 +980,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 2.4.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.digitalnoise.MBox-Explorer.widget";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.digitalnoise.AncientHistory.widget";
 				PRODUCT_NAME = "MBox Explorer Widget";
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -998,7 +998,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.digitalnoise.MBox-Explorer.tests";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.digitalnoise.AncientHistory.tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;
@@ -1015,7 +1015,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.digitalnoise.MBox-Explorer.tests";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.digitalnoise.AncientHistory.tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;
@@ -1044,7 +1044,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 2.4.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.digitalnoise.MBox-Explorer.widget";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.digitalnoise.AncientHistory.widget";
 				PRODUCT_NAME = "MBox Explorer Widget";
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -1191,7 +1191,7 @@
 				DEVELOPMENT_TEAM = QRRCB8HB3W;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "MBox Explorer";
+				INFOPLIST_KEY_CFBundleDisplayName = "Ancient History";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
@@ -1201,7 +1201,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 2.3.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.digitalnoise.MBox-Explorer";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.digitalnoise.AncientHistory";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -1221,7 +1221,7 @@
 				DEVELOPMENT_TEAM = QRRCB8HB3W;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "MBox Explorer";
+				INFOPLIST_KEY_CFBundleDisplayName = "Ancient History";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
@@ -1231,7 +1231,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 2.3.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.digitalnoise.MBox-Explorer";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.digitalnoise.AncientHistory";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
