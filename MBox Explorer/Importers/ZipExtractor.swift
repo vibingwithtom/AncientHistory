@@ -81,11 +81,18 @@ struct ZipExtractor {
             } else {
                 try fileManager.createDirectory(at: targetURL.deletingLastPathComponent(),
                                                 withIntermediateDirectories: true)
+                // These come from the (untrusted) archive; reject out-of-range
+                // 64-bit values instead of trapping on the UInt64 -> Int convert.
+                guard let localOffsetInt = Int(exactly: localHeaderOffset),
+                      let compressedInt = Int(exactly: compressedSize),
+                      let uncompressedInt = Int(exactly: uncompressedSize) else {
+                    throw ZipExtractorError.corrupt("entry size/offset out of range")
+                }
                 let contents = try extractEntry(data,
-                                                localHeaderOffset: Int(localHeaderOffset),
+                                                localHeaderOffset: localOffsetInt,
                                                 method: method,
-                                                compressedSize: Int(compressedSize),
-                                                uncompressedSize: Int(uncompressedSize))
+                                                compressedSize: compressedInt,
+                                                uncompressedSize: uncompressedInt)
                 try contents.write(to: targetURL)
             }
 
@@ -115,23 +122,28 @@ struct ZipExtractor {
         var count = u16(data, eocd + 10)
         var cdOffset = UInt64(u32(data, eocd + 16))
 
-        // ZIP64: when count/offset are saturated, follow the ZIP64 locator.
+        // ZIP64: when count/offset are saturated, follow the ZIP64 locator. All
+        // 64-bit fields are crafted input, so convert via Int(exactly:) and throw
+        // rather than trap when a value exceeds Int.max.
         if count == 0xFFFF || cdOffset == 0xFFFF_FFFF {
             let locatorOffset = eocd - 20
-            if locatorOffset >= 0, u32(data, locatorOffset) == 0x0706_4b50 {
-                let zip64EOCD = Int(u64(data, locatorOffset + 8))
-                if zip64EOCD >= 0, zip64EOCD + 56 <= data.count,
-                   u32(data, zip64EOCD) == 0x0606_4b50 {
-                    count = Int(u64(data, zip64EOCD + 32))
-                    cdOffset = u64(data, zip64EOCD + 48)
+            if locatorOffset >= 0, locatorOffset + 20 <= data.count,
+               u32(data, locatorOffset) == 0x0706_4b50,
+               let zip64EOCD = Int(exactly: u64(data, locatorOffset + 8)),
+               zip64EOCD >= 0, zip64EOCD + 56 <= data.count,
+               u32(data, zip64EOCD) == 0x0606_4b50 {
+                guard let zip64Count = Int(exactly: u64(data, zip64EOCD + 32)) else {
+                    throw ZipExtractorError.corrupt("ZIP64 entry count out of range")
                 }
+                count = zip64Count
+                cdOffset = u64(data, zip64EOCD + 48)
             }
         }
 
-        guard Int(cdOffset) <= data.count else {
+        guard let cdOffsetInt = Int(exactly: cdOffset), cdOffsetInt <= data.count else {
             throw ZipExtractorError.corrupt("central directory offset out of bounds")
         }
-        return CentralDirectory(offset: Int(cdOffset), count: count)
+        return CentralDirectory(offset: cdOffsetInt, count: count)
     }
 
     private static func parseZip64Extra(_ data: Data, start: Int, length: Int,

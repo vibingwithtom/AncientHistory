@@ -210,7 +210,7 @@ class VectorDatabase: ObservableObject {
         // Stamp the collection with the embedder identity so later queries can
         // detect a model/dimension change and refuse to mix embedding spaces.
         if embeddingManager.useSemanticSearch {
-            let model = await MainActor.run { embeddingManager.selectedProvider.rawValue }
+            let model = await MainActor.run { embeddingManager.currentModelIdentifier }
             let dimension = await MainActor.run { embeddingManager.currentDimension }
             stampEmbeddingIdentity(model: model, dimension: dimension)
         }
@@ -463,7 +463,7 @@ class VectorDatabase: ObservableObject {
         // mismatched dimensions) yields meaningless results. search() then falls
         // back to keyword search.
         if let stamp = stampedEmbeddingIdentity() {
-            let currentModel = await MainActor.run { embeddingManager.selectedProvider.rawValue }
+            let currentModel = await MainActor.run { embeddingManager.currentModelIdentifier }
             let currentDim = await MainActor.run { embeddingManager.currentDimension }
             if stamp.model != currentModel || stamp.dimension != currentDim {
                 throw EmbeddingError.dimensionMismatch(expected: stamp.dimension, got: currentDim)

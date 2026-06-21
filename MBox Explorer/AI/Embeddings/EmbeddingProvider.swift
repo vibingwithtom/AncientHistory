@@ -20,6 +20,14 @@ protocol EmbeddingProvider {
     func generateBatchEmbeddings(for texts: [String]) async throws -> [[Float]]
 }
 
+extension EmbeddingProvider {
+    /// A stable identifier for the concrete embedding *model* (not just the
+    /// provider type), used to stamp the vector collection so a model change is
+    /// detected even within one provider. Providers whose model is selectable
+    /// (e.g. Ollama) override this to fold in the model name.
+    var modelIdentifier: String { name }
+}
+
 /// Errors for embedding operations
 enum EmbeddingError: LocalizedError {
     case providerUnavailable(String)
@@ -210,6 +218,12 @@ class EmbeddingManager: ObservableObject {
 
     var currentDimension: Int {
         activeProvider?.embeddingDimension ?? 0
+    }
+
+    /// Identifier of the active embedding model, used to stamp the vector
+    /// collection (falls back to the provider type when no provider is active).
+    var currentModelIdentifier: String {
+        activeProvider?.modelIdentifier ?? selectedProvider.rawValue
     }
 
     var useSemanticSearch: Bool {

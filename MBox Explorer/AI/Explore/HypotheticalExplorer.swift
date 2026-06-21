@@ -74,6 +74,8 @@ class HypotheticalExplorer: ObservableObject {
     /// Compare the actual decision with a hypothetical alternative.
     @discardableResult
     func compareOutcomes(actual: String, alternative: String, emails: [Email]) async -> SpeculativeResponse {
+        isAnalyzing = true
+        defer { isAnalyzing = false }
         let relevant = findRelevantEmails(for: actual, in: emails)
         let instructions = """
         You compare an actual decision with a hypothetical alternative, grounded in email \
@@ -108,6 +110,8 @@ class HypotheticalExplorer: ObservableObject {
     /// Trace the implications of a decision through the surrounding emails.
     @discardableResult
     func traceImplications(of decision: String, on date: Date, emails: [Email]) async -> SpeculativeResponse {
+        isAnalyzing = true
+        defer { isAnalyzing = false }
         let before = emails.filter { email in
             guard let d = email.dateObject else { return false }
             let from = Calendar.current.date(byAdding: .day, value: -14, to: date) ?? date

@@ -135,11 +135,10 @@ class PersonaSimulator: ObservableObject {
 
     // MARK: - Helpers
 
+    /// Key senders by the same canonical address parser FragmentBuilder uses for
+    /// speaker_id, so a persona's identity matches its fragments' speaker.
     private func normalizeEmail(_ raw: String) -> String {
-        if let match = raw.range(of: #"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"#, options: .regularExpression) {
-            return String(raw[match]).lowercased()
-        }
-        return raw.lowercased()
+        EmailAddressParser.address(in: raw) ?? raw.lowercased()
     }
 
     private func extractName(from raw: String) -> String {

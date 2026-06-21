@@ -27,6 +27,9 @@ class OpenAICompatibleEmbeddingProvider: EmbeddingProvider, ObservableObject {
     /// The embedding model identifier requested from the server.
     let model: String
 
+    /// Fold the model into the identity so switching models is detected.
+    var modelIdentifier: String { "OpenAI-Compatible:\(model)" }
+
     private let baseURL: String
 
     init(baseURL: String? = nil, model: String = "bge-m3") {

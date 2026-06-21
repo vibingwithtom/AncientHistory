@@ -13,6 +13,9 @@ import Foundation
 class OllamaEmbeddingProvider: EmbeddingProvider, ObservableObject {
     let name = "Ollama"
 
+    /// Fold the selected model into the identity so switching models is detected.
+    var modelIdentifier: String { "Ollama:\(selectedModel)" }
+
     @Published var isAvailable = false
     @Published var selectedModel = "nomic-embed-text"
 

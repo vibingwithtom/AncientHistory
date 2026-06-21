@@ -93,7 +93,7 @@ struct ThreadGraph {
         let rootIDs = Set(headerRootByEmail.values)
         var representativeByRoot: [UUID: UUID] = [:]
         var repBySubject: [String: UUID] = [:]
-        for rootID in rootIDs.sorted(by: { Self.sortKey($0, emailByID) < Self.sortKey($1, emailByID) }) {
+        for rootID in rootIDs.sorted(by: { Self.isEarlier($0, than: $1, emailByID) }) {
             guard let root = emailByID[rootID] else { representativeByRoot[rootID] = rootID; continue }
             let subject = normalizeSubject(root.subject)
             if subject.isEmpty {
@@ -160,9 +160,14 @@ struct ThreadGraph {
         return normalized
     }
 
-    /// Order key for choosing the earliest root (date, then id for stability).
-    private static func sortKey(_ id: UUID, _ emailByID: [UUID: Email]) -> String {
-        let date = emailByID[id]?.dateObject ?? .distantFuture
-        return "\(date.timeIntervalSince1970)-\(id.uuidString)"
+    /// Chronological ordering for choosing the earliest root, falling back to the
+    /// UUID for stability when timestamps tie or are missing. (Compares the dates
+    /// numerically — interpolating the interval into a string would sort
+    /// lexicographically and mis-order across digit-count boundaries.)
+    private static func isEarlier(_ lhs: UUID, than rhs: UUID, _ emailByID: [UUID: Email]) -> Bool {
+        let lDate = emailByID[lhs]?.dateObject ?? .distantFuture
+        let rDate = emailByID[rhs]?.dateObject ?? .distantFuture
+        if lDate != rDate { return lDate < rDate }
+        return lhs.uuidString < rhs.uuidString
     }
 }

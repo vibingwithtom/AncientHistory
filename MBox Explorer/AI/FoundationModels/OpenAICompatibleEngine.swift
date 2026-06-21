@@ -25,7 +25,7 @@ struct OpenAICompatibleEngine: LLMEngine {
 
     /// Wire protocol spoken by the server.
     enum APIStyle: Hashable, Sendable {
-        /// OpenAI-compatible `POST {baseURL}/chat/completions` with SSE streaming.
+        /// OpenAI-compatible `POST {baseURL}/v1/chat/completions` with SSE streaming.
         case openAIChat
     }
 
@@ -130,7 +130,7 @@ struct OpenAICompatibleEngine: LLMEngine {
 
     private func makeOpenAIRequest(messages: [LLMChatMessage],
                                    params: LLMGenerationParams) throws -> URLRequest {
-        var request = URLRequest(url: baseURL.appendingPathComponent("chat/completions"))
+        var request = URLRequest(url: baseURL.appendingPathComponent("v1/chat/completions"))
         request.httpMethod = "POST"
         request.timeoutInterval = requestTimeout
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

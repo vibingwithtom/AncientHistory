@@ -87,8 +87,15 @@ enum QuoteStripper {
             if lower.hasPrefix("-----original message-----") { return index }
             if line.hasPrefix("________________________________") { return index }
             if lower.hasPrefix("on ") && lower.hasSuffix("wrote:") { return index }
-            // Quoted attribution that wraps: "On <date>," then "<name> wrote:".
-            if lower.hasPrefix("on ") && lower.hasSuffix(",") { return index }
+            // Wrapped attribution: "On <date>," on one line, "<name> wrote:" on the
+            // next. Only cut when the continuation really is a "… wrote:" line —
+            // otherwise a normal sentence ("On Monday, I'll send it,") would be
+            // mistaken for an attribution and truncate real reply content.
+            if lower.hasPrefix("on ") && lower.hasSuffix(","),
+               index + 1 < lines.count,
+               lines[index + 1].trimmingCharacters(in: .whitespaces).lowercased().hasSuffix("wrote:") {
+                return index
+            }
             if lower.hasPrefix("from:") && index + 1 < lines.count {
                 let next = lines[index + 1].lowercased()
                 if next.hasPrefix("sent:") || next.hasPrefix("date:") || next.hasPrefix("to:") {
@@ -165,8 +172,14 @@ struct FragmentBuilder {
             if let to = email.to { participants.formUnion(EmailAddressParser.addresses(in: to)) }
             for address in participants { counts[address, default: 0] += 1 }
         }
-        guard let top = counts.max(by: { $0.value < $1.value }) else { return [] }
-        return [top.key]
+        // Deterministic: most frequent participant, breaking ties by the
+        // lexicographically smallest address so a symmetric archive doesn't pick a
+        // random "owner" between runs (Dictionary iteration order is randomized).
+        let top = counts.max { a, b in
+            a.value != b.value ? a.value < b.value : a.key > b.key
+        }
+        guard let owner = top?.key else { return [] }
+        return [owner]
     }
 
     /// One fragment per email (stable id = the email's UUID string), with quoted
