@@ -47,12 +47,15 @@ struct ExploreView: View {
                 }
             }
         }
-        .onAppear {
+        .task {
+            // Heavy corpus aggregation runs off the main actor (see PersonaSimulator
+            // / HypotheticalExplorer) so opening the tab doesn't hang the UI.
+            let emails = viewModel.emails
             if personas.availablePersonas.isEmpty {
-                personas.buildPersonas(from: viewModel.emails)
+                await personas.buildPersonas(from: emails)
             }
             if decisionSeeds.isEmpty {
-                decisionSeeds = hypothetical.identifyDecisionPoints(in: viewModel.emails)
+                decisionSeeds = await hypothetical.identifyDecisionPoints(in: emails)
             }
         }
     }

@@ -38,14 +38,23 @@ class PersonaSimulator: ObservableObject {
     @Published var isGenerating = false
 
     /// Minimum emails from a sender before a simulation is offered.
-    static let minimumHistory = 5
+    nonisolated static let minimumHistory = 5
 
     private init() {}
 
     // MARK: - Persona building
 
-    /// Aggregate senders into personas from how they wrote (S3 primitive).
-    func buildPersonas(from emails: [Email]) {
+    /// Aggregate senders into personas from how they wrote (S3 primitive). The
+    /// O(total-body-bytes) string work runs off the main actor; only the published
+    /// assignment hops back to the main actor.
+    func buildPersonas(from emails: [Email]) async {
+        let built = await Task.detached(priority: .userInitiated) {
+            Self.aggregatePersonas(from: emails)
+        }.value
+        availablePersonas = built
+    }
+
+    nonisolated static func aggregatePersonas(from emails: [Email]) -> [EmailPersona] {
         var builders: [String: PersonaBuilder] = [:]
         for email in emails {
             let key = normalizeEmail(email.from)
@@ -54,9 +63,8 @@ class PersonaSimulator: ObservableObject {
             }
             builders[key]?.add(email)
         }
-
-        availablePersonas = builders.values
-            .filter { $0.emailCount >= Self.minimumHistory }
+        return builders.values
+            .filter { $0.emailCount >= minimumHistory }
             .map { $0.buildPersona() }
             .sorted { $0.sampleEmails.count > $1.sampleEmails.count }
     }
@@ -91,7 +99,7 @@ class PersonaSimulator: ObservableObject {
         defer { isGenerating = false }
 
         let recent = emails
-            .filter { normalizeEmail($0.from) == persona.email }
+            .filter { Self.normalizeEmail($0.from) == persona.email }
             .sorted { ($0.dateObject ?? .distantPast) > ($1.dateObject ?? .distantPast) }
             .prefix(10)
 
@@ -137,11 +145,11 @@ class PersonaSimulator: ObservableObject {
 
     /// Key senders by the same canonical address parser FragmentBuilder uses for
     /// speaker_id, so a persona's identity matches its fragments' speaker.
-    private func normalizeEmail(_ raw: String) -> String {
+    nonisolated private static func normalizeEmail(_ raw: String) -> String {
         EmailAddressParser.address(in: raw) ?? raw.lowercased()
     }
 
-    private func extractName(from raw: String) -> String {
+    nonisolated private static func extractName(from raw: String) -> String {
         if let match = raw.range(of: #"^[^<]+"#, options: .regularExpression) {
             let name = String(raw[match]).trimmingCharacters(in: .whitespaces)
             if !name.isEmpty && !name.contains("@") { return name }

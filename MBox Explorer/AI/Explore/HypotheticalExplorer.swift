@@ -154,8 +154,15 @@ class HypotheticalExplorer: ObservableObject {
 
     // MARK: - Seeds
 
-    /// Surface decision points that could seed a what-if ("explore the alternate path here").
-    func identifyDecisionPoints(in emails: [Email]) -> [DecisionPoint] {
+    /// Surface decision points that could seed a what-if ("explore the alternate
+    /// path here"). The full-corpus scan runs off the main actor.
+    func identifyDecisionPoints(in emails: [Email]) async -> [DecisionPoint] {
+        await Task.detached(priority: .userInitiated) {
+            Self.computeDecisionPoints(in: emails)
+        }.value
+    }
+
+    nonisolated static func computeDecisionPoints(in emails: [Email]) -> [DecisionPoint] {
         let indicators = ["decided", "agreed", "chose", "selected", "approved", "going with", "final"]
         var points: [DecisionPoint] = []
         for email in emails where indicators.contains(where: { email.body.lowercased().contains($0) }) {
@@ -202,7 +209,7 @@ class HypotheticalExplorer: ObservableObject {
         }.joined(separator: "\n---\n")
     }
 
-    private func extractAlternatives(from text: String) -> [String] {
+    nonisolated private static func extractAlternatives(from text: String) -> [String] {
         let patterns = ["instead of", "rather than", "other option", "alternative", "or we could", "versus"]
         let lower = text.lowercased()
         var result: [String] = []
@@ -218,7 +225,7 @@ class HypotheticalExplorer: ObservableObject {
         return result
     }
 
-    private func extractDecision(from text: String) -> String {
+    nonisolated private static func extractDecision(from text: String) -> String {
         let lower = text.lowercased()
         for pattern in ["we decided", "decision is", "going with", "approved"] {
             if let range = lower.range(of: pattern) {
