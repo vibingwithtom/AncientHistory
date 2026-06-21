@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		DD1A48BFF267442DFFC74D45 /* AppleNLEmbeddingProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1FA2637E2AC4B38E3A4145E /* AppleNLEmbeddingProvider.swift */; };
 		050AE07D9F0290A9C9B59841 /* CommitmentTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 408098289A40C753C412475A /* CommitmentTracker.swift */; };
 		0ACC5F34C57FEAFED5D7DF30 /* DecisionArchaeologist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 747630C04E4FCF77DDE62867 /* DecisionArchaeologist.swift */; };
 		162EA02AA9581D8F680F992B /* TinyChatEmbeddingProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49684E8221083E6F0CE2A0E /* TinyChatEmbeddingProvider.swift */; };
@@ -139,6 +140,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A1FA2637E2AC4B38E3A4145E /* AppleNLEmbeddingProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/Embeddings/AppleNLEmbeddingProvider.swift"; sourceTree = "<group>"; };
 		079E96CC45CDE63932C5618D /* OpenWebUIEmbeddingProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = OpenWebUIEmbeddingProvider.swift; path = AI/Embeddings/OpenWebUIEmbeddingProvider.swift; sourceTree = "<group>"; };
 		1A6D6C4E189283A97C610D5E /* Views/ExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/ExploreView.swift; sourceTree = "<group>"; };
 		1DA6206E86CAEFE924E9D19C /* AskView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AskView.swift; sourceTree = "<group>"; };
@@ -393,6 +395,7 @@
 		EMB003000000000000000001 /* Embeddings */ = {
 			isa = PBXGroup;
 			children = (
+				A1FA2637E2AC4B38E3A4145E /* AppleNLEmbeddingProvider.swift */,
 				8B33E1876AFA33FBA6F64744 /* AI/Embeddings/OpenAICompatibleEmbeddingProvider.swift */,
 				EMB002010000000000000001 /* EmbeddingProvider.swift */,
 				EMB002020000000000000001 /* OllamaEmbeddingProvider.swift */,
@@ -708,6 +711,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DD1A48BFF267442DFFC74D45 /* AppleNLEmbeddingProvider.swift in Sources */,
 				45448947D205D72AD911DB75 /* Views/ExploreView.swift in Sources */,
 				42377A21F1A89A0D26188414 /* AI/Explore/HypotheticalExplorer.swift in Sources */,
 				7243A558D924F0F32CDCCA6F /* AI/Explore/PersonaSimulator.swift in Sources */,

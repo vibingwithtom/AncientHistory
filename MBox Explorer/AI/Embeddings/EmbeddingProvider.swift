@@ -61,6 +61,7 @@ enum EmbeddingError: LocalizedError {
 /// Embedding provider type
 enum EmbeddingProviderType: String, CaseIterable, Identifiable {
     case ollama = "Ollama"
+    case appleNL = "Apple On-Device"
     case openAICompatible = "OpenAI-Compatible"
     case openai = "OpenAI"
     case tinyChat = "TinyChat"
@@ -73,6 +74,8 @@ enum EmbeddingProviderType: String, CaseIterable, Identifiable {
         switch self {
         case .ollama:
             return "Local embeddings via Ollama (free, private)"
+        case .appleNL:
+            return "On-device Apple embeddings via NaturalLanguage (free, private, no server)"
         case .openAICompatible:
             return "Local OpenAI-compatible endpoint server with BGE-M3 (free, private)"
         case .openai:
@@ -90,6 +93,8 @@ enum EmbeddingProviderType: String, CaseIterable, Identifiable {
         switch self {
         case .ollama:
             return "brew install ollama && ollama pull nomic-embed-text"
+        case .appleNL:
+            return "Built in — downloads a small on-device model on first use"
         case .openAICompatible:
             return "Run the local OpenAI-compatible endpoint server with a BGE-M3 model"
         case .openai:
@@ -132,6 +137,7 @@ class EmbeddingManager: ObservableObject {
     @Published var statusMessage = "Checking..."
 
     private var ollamaProvider: OllamaEmbeddingProvider?
+    private var appleNLProvider: AppleNLEmbeddingProvider?
     private var endpointProvider: OpenAICompatibleEmbeddingProvider?
     private var openaiProvider: OpenAIEmbeddingProvider?
     private var tinyChatProvider: TinyChatEmbeddingProvider?
@@ -145,6 +151,7 @@ class EmbeddingManager: ObservableObject {
 
         // Initialize providers
         ollamaProvider = OllamaEmbeddingProvider()
+        appleNLProvider = AppleNLEmbeddingProvider()
         endpointProvider = OpenAICompatibleEmbeddingProvider()
         openaiProvider = OpenAIEmbeddingProvider()
         tinyChatProvider = TinyChatEmbeddingProvider()
@@ -166,6 +173,9 @@ class EmbeddingManager: ObservableObject {
         case .ollama:
             await ollamaProvider?.checkAvailability()
             provider = ollamaProvider
+        case .appleNL:
+            await appleNLProvider?.checkAvailability()
+            provider = appleNLProvider
         case .openAICompatible:
             await endpointProvider?.checkAvailability()
             provider = endpointProvider
