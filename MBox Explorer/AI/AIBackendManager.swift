@@ -185,6 +185,30 @@ class AIBackendManager: ObservableObject {
         userDefaults.set(creativeTemperature, forKey: Keys.creativeTemperature)
     }
 
+    // MARK: - Context budgeting
+
+    /// Characters of retrieved context to include in a RAG prompt, budgeted to the
+    /// active model's window. The Apple on-device model has a small (~4k-token)
+    /// window, so it gets far less than a server model — otherwise stuffing many
+    /// retrieved emails overflows it ("context size exceeded").
+    var retrievedContextCharBudget: Int {
+        switch activeBackend ?? selectedBackend {
+        case .onDevice: return 8_000     // ~2k tokens, leaves room for prompt + answer
+        case .privateCloud: return 16_000
+        default: return 24_000           // servers/endpoint typically allow larger windows
+        }
+    }
+
+    /// Response token budget for the active model (kept small for on-device so the
+    /// reserved answer space doesn't eat the input window).
+    var responseTokenBudget: Int {
+        switch activeBackend ?? selectedBackend {
+        case .onDevice: return 700
+        case .privateCloud: return 1_200
+        default: return 2_048
+        }
+    }
+
     // MARK: - Backend Availability Checking
 
     /// Apple model availability is a local capability check — no network.
