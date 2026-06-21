@@ -215,10 +215,28 @@ class VectorDatabase: ObservableObject {
             stampEmbeddingIdentity(model: model, dimension: dimension)
         }
 
+        // Reduce each email to its atomic fragment (unique, quote-stripped text
+        // with parent context), then dedup before indexing: drop replies that
+        // added nothing new (pure quotes) and exact-duplicate content.
+        let graph = ThreadGraph.build(from: emails)
+        let owner = FragmentBuilder.inferOwnerAddresses(from: emails)
+        let fragments = FragmentBuilder(ownerAddresses: owner).fragments(from: emails, graph: graph)
+        let fragmentByEmailID = Dictionary(uniqueKeysWithValues: fragments.map { ($0.id, $0) })
+
+        var seenContent = Set<String>()
+        let emailsToIndex = emails.filter { email in
+            guard let fragment = fragmentByEmailID[email.id.uuidString] else { return true }
+            let key = fragment.textContent.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            if key.isEmpty { return false }            // reply contributed no new text
+            if seenContent.contains(key) { return false }  // duplicate content
+            seenContent.insert(key)
+            return true
+        }
+
         // Process in batches for efficiency
         let batchSize = 20
-        let batches = stride(from: 0, to: emails.count, by: batchSize).map {
-            Array(emails[$0..<min($0 + batchSize, emails.count)])
+        let batches = stride(from: 0, to: emailsToIndex.count, by: batchSize).map {
+            Array(emailsToIndex[$0..<min($0 + batchSize, emailsToIndex.count)])
         }
 
         var processedCount = 0
@@ -228,13 +246,20 @@ class VectorDatabase: ObservableObject {
             let emailDataForIndexing: [(email: Email, bodyLength: Int, metadataJSON: String)] = batch.map { email in
                 // Safely compute body length and metadata JSON upfront
                 let bodyLength = email.body.count
-                let metadataDict: [String: Any] = [
+                let fragment = fragmentByEmailID[email.id.uuidString]
+                var metadataDict: [String: Any] = [
                     "from": email.from,
                     "subject": email.subject,
                     "date": email.date,
                     "message_id": email.messageId ?? "",
                     "body_length": bodyLength
                 ]
+                if let fragment {
+                    metadataDict["thread_id"] = fragment.threadID
+                    metadataDict["direction"] = fragment.direction.rawValue
+                    metadataDict["speaker_id"] = fragment.speakerID
+                    if let parent = fragment.parentFragmentID { metadataDict["parent_fragment_id"] = parent }
+                }
                 let metadataJSON: String
                 if let jsonData = try? JSONSerialization.data(withJSONObject: metadataDict, options: []),
                    let jsonString = String(data: jsonData, encoding: .utf8) {
@@ -249,10 +274,14 @@ class VectorDatabase: ObservableObject {
             var embeddings: [[Float]] = []
 
             if embeddingManager.useSemanticSearch {
-                let texts = batch.map { email in
-                    // Combine subject + first 500 chars of body for embedding
-                    let bodyPrefix = String(email.body.prefix(500))
-                    return "\(email.subject) \(bodyPrefix)"
+                let texts = batch.map { email -> String in
+                    // Embed the atomic fragment: unique text_content + parent_snippet
+                    // (so a bare reply still retrieves with the context it answers),
+                    // prefixed with the subject. Fall back to the raw body if no
+                    // fragment was produced.
+                    let fragmentText = fragmentByEmailID[email.id.uuidString]?.embeddingText
+                        ?? String(email.body.prefix(500))
+                    return "\(email.subject) \(fragmentText)"
                 }
 
                 do {
@@ -269,7 +298,7 @@ class VectorDatabase: ObservableObject {
                 indexEmailSync(emailData.email, embedding: embedding, metadataJSON: emailData.metadataJSON)
 
                 processedCount += 1
-                let progress = Double(processedCount) / Double(emails.count)
+                let progress = Double(processedCount) / Double(max(emailsToIndex.count, 1))
                 await MainActor.run {
                     self.indexProgress = progress
                     progressCallback(progress)
@@ -282,7 +311,7 @@ class VectorDatabase: ObservableObject {
 
         await MainActor.run {
             self.isIndexed = true
-            self.totalDocuments = emails.count
+            self.totalDocuments = emailsToIndex.count
         }
     }
 

@@ -180,13 +180,17 @@ struct FragmentBuilder {
             let parentSnippet = parentEmail.map {
                 String(QuoteStripper.uniqueContent(reply: $0.body, parent: nil).prefix(200))
             }
+            // Roots keep their full body when stripping yields nothing; a reply
+            // that only quoted its parent keeps an empty textContent so the dedup
+            // pass can drop it (it contributed no new content).
+            let textContent = unique.isEmpty && parentEmail == nil ? email.body : unique
             return AtomicFragment(
                 id: email.id.uuidString,
                 threadID: graph.threadID(for: email.id),
                 timestamp: email.dateObject,
                 direction: direction(forFrom: email.from),
                 speakerID: EmailAddressParser.address(in: email.from) ?? email.from,
-                textContent: unique.isEmpty ? email.body : unique,
+                textContent: textContent,
                 parentFragmentID: parentEmail?.id.uuidString,
                 parentSnippet: parentSnippet
             )
