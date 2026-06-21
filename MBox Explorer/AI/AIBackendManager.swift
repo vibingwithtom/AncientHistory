@@ -20,12 +20,13 @@
 import Foundation
 import SwiftUI
 import Combine
+import FoundationModels
 
 // MARK: - AI Backend Type
 
 enum AIBackend: String, Codable, CaseIterable {
     case ollama = "Ollama"
-    case mlx = "MLX Toolkit"
+    case omlx = "oMLX (Local Server)"
     case tinyLLM = "TinyLLM"
     case tinyChat = "TinyChat"
     case openWebUI = "OpenWebUI"
@@ -34,7 +35,7 @@ enum AIBackend: String, Codable, CaseIterable {
     var icon: String {
         switch self {
         case .ollama: return "network"
-        case .mlx: return "cpu"
+        case .omlx: return "server.rack"
         case .tinyLLM: return "cube"
         case .tinyChat: return "bubble.left.and.bubble.right.fill"
         case .openWebUI: return "globe"
@@ -46,8 +47,8 @@ enum AIBackend: String, Codable, CaseIterable {
         switch self {
         case .ollama:
             return "HTTP-based API (Ollama running on localhost:11434)"
-        case .mlx:
-            return "Python MLX Toolkit (runs models locally via Python)"
+        case .omlx:
+            return "Local oMLX server via Foundation Models (requires macOS 27)"
         case .tinyLLM:
             return "TinyLLM lightweight server (localhost:8000)"
         case .tinyChat:
@@ -84,7 +85,7 @@ class AIBackendManager: ObservableObject {
     @Published var selectedBackend: AIBackend = .auto
     @Published var activeBackend: AIBackend? = nil
     @Published var isOllamaAvailable = false
-    @Published var isMLXAvailable = false
+    @Published var isOMLXAvailable = false
     @Published var isTinyLLMAvailable = false
     @Published var isTinyChatAvailable = false
     @Published var isOpenWebUIAvailable = false
@@ -95,9 +96,9 @@ class AIBackendManager: ObservableObject {
     @Published var ollamaModels: [String] = []
     @Published var selectedOllamaModel: String = "mistral:latest"
 
-    // MLX-specific
-    @Published var pythonPath: String = "/opt/homebrew/bin/python3"
-    @Published var mlxScriptPath: String = ""
+    // oMLX-specific (local model server)
+    @Published var omlxServerURL: String = "http://localhost:8000"
+    @Published var omlxModel: String = "gemma-3-12b"
 
     // TinyLLM-specific (Jason Cox)
     @Published var tinyLLMServerURL: String = "http://localhost:8000"
@@ -121,8 +122,8 @@ class AIBackendManager: ObservableObject {
     private enum Keys {
         static let selectedBackend = "AIBackendManager_SelectedBackend"
         static let ollamaModel = "AIBackendManager_OllamaModel"
-        static let pythonPath = "AIBackendManager_PythonPath"
-        static let mlxScriptPath = "AIBackendManager_MLXScriptPath"
+        static let omlxServerURL = "AIBackendManager_OMLXServerURL"
+        static let omlxModel = "AIBackendManager_OMLXModel"
         static let tinyLLMServerURL = "AIBackendManager_TinyLLMServerURL"
         static let tinyChatServerURL = "AIBackendManager_TinyChatServerURL"
         static let openWebUIServerURL = "AIBackendManager_OpenWebUIServerURL"
@@ -149,8 +150,8 @@ class AIBackendManager: ObservableObject {
         }
 
         selectedOllamaModel = userDefaults.string(forKey: Keys.ollamaModel) ?? "mistral:latest"
-        pythonPath = userDefaults.string(forKey: Keys.pythonPath) ?? "/opt/homebrew/bin/python3"
-        mlxScriptPath = userDefaults.string(forKey: Keys.mlxScriptPath) ?? ""
+        omlxServerURL = userDefaults.string(forKey: Keys.omlxServerURL) ?? "http://localhost:8000"
+        omlxModel = userDefaults.string(forKey: Keys.omlxModel) ?? "gemma-3-12b"
         tinyLLMServerURL = userDefaults.string(forKey: Keys.tinyLLMServerURL) ?? "http://localhost:8000"
         tinyChatServerURL = userDefaults.string(forKey: Keys.tinyChatServerURL) ?? "http://localhost:8000"
         openWebUIServerURL = userDefaults.string(forKey: Keys.openWebUIServerURL) ?? "http://localhost:8080"
@@ -164,8 +165,8 @@ class AIBackendManager: ObservableObject {
     func saveSettings() {
         userDefaults.set(selectedBackend.rawValue, forKey: Keys.selectedBackend)
         userDefaults.set(selectedOllamaModel, forKey: Keys.ollamaModel)
-        userDefaults.set(pythonPath, forKey: Keys.pythonPath)
-        userDefaults.set(mlxScriptPath, forKey: Keys.mlxScriptPath)
+        userDefaults.set(omlxServerURL, forKey: Keys.omlxServerURL)
+        userDefaults.set(omlxModel, forKey: Keys.omlxModel)
         userDefaults.set(tinyLLMServerURL, forKey: Keys.tinyLLMServerURL)
         userDefaults.set(tinyChatServerURL, forKey: Keys.tinyChatServerURL)
         userDefaults.set(openWebUIServerURL, forKey: Keys.openWebUIServerURL)
@@ -178,15 +179,15 @@ class AIBackendManager: ObservableObject {
 
     func checkBackendAvailability() async {
         async let ollamaCheck = checkOllamaAvailability()
-        async let mlxCheck = checkMLXAvailability()
+        async let omlxCheck = checkOMLXAvailability()
         async let tinyLLMCheck = checkTinyLLMAvailability()
         async let tinyChatCheck = checkTinyChatAvailability()
         async let openWebUICheck = checkOpenWebUIAvailability()
 
-        let (ollama, mlx, tinyLLM, tinyChat, openWebUI) = await (ollamaCheck, mlxCheck, tinyLLMCheck, tinyChatCheck, openWebUICheck)
+        let (ollama, omlx, tinyLLM, tinyChat, openWebUI) = await (ollamaCheck, omlxCheck, tinyLLMCheck, tinyChatCheck, openWebUICheck)
 
         isOllamaAvailable = ollama
-        isMLXAvailable = mlx
+        isOMLXAvailable = omlx
         isTinyLLMAvailable = tinyLLM
         isTinyChatAvailable = tinyChat
         isOpenWebUIAvailable = openWebUI
@@ -199,8 +200,8 @@ class AIBackendManager: ObservableObject {
         switch selectedBackend {
         case .ollama:
             activeBackend = isOllamaAvailable ? .ollama : nil
-        case .mlx:
-            activeBackend = isMLXAvailable ? .mlx : nil
+        case .omlx:
+            activeBackend = isOMLXAvailable ? .omlx : nil
         case .tinyLLM:
             activeBackend = isTinyLLMAvailable ? .tinyLLM : nil
         case .tinyChat:
@@ -217,8 +218,8 @@ class AIBackendManager: ObservableObject {
                 activeBackend = .tinyLLM
             } else if isOpenWebUIAvailable {
                 activeBackend = .openWebUI
-            } else if isMLXAvailable {
-                activeBackend = .mlx
+            } else if isOMLXAvailable {
+                activeBackend = .omlx
             } else {
                 activeBackend = nil
             }
@@ -308,20 +309,19 @@ class AIBackendManager: ObservableObject {
         }
     }
 
-    private func checkMLXAvailability() async -> Bool {
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: pythonPath)
-        // Check for both mlx.core and mlx_lm (needed for text generation)
-        task.arguments = ["-c", "import mlx.core; import mlx_lm; print('OK')"]
+    private func checkOMLXAvailability() async -> Bool {
+        // The oMLX provider runs through Foundation Models, which is macOS 27+.
+        guard #available(macOS 27.0, *) else { return false }
+        guard let url = URL(string: omlxServerURL) else { return false }
 
-        let pipe = Pipe()
-        task.standardOutput = pipe
-        task.standardError = pipe
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 3
 
         do {
-            try task.run()
-            task.waitUntilExit()
-            return task.terminationStatus == 0
+            let (_, response) = try await URLSession.shared.data(for: request)
+            // Any HTTP response means the server is reachable.
+            return (response as? HTTPURLResponse) != nil
         } catch {
             return false
         }
@@ -351,8 +351,11 @@ class AIBackendManager: ObservableObject {
                 temperature: temperature,
                 maxTokens: maxTokens
             )
-        case .mlx:
-            return try await generateWithMLX(
+        case .omlx:
+            guard #available(macOS 27.0, *) else {
+                throw AIBackendError.omlxUnavailable
+            }
+            return try await generateWithOMLX(
                 prompt: prompt,
                 systemPrompt: systemPrompt,
                 temperature: temperature,
@@ -426,84 +429,34 @@ class AIBackendManager: ObservableObject {
         return response.response
     }
 
-    // MARK: - MLX Implementation
+    // MARK: - oMLX Implementation
+    //
+    // Runs inference on the local oMLX server through Apple's Foundation Models
+    // (`LanguageModelSession`). This replaces the original MLX backend, which
+    // string-interpolated the prompt into a Python script and executed it — an
+    // arbitrary-code-execution vulnerability. Prompt content now travels as JSON
+    // over HTTP and is never treated as code. See OMLXLanguageModel / M2.
 
-    private func generateWithMLX(
+    @available(macOS 27.0, *)
+    private func generateWithOMLX(
         prompt: String,
         systemPrompt: String?,
         temperature: Float,
         maxTokens: Int
     ) async throws -> String {
-        // MLX uses inline Python script with mlx_lm package
-        // No custom script path needed - uses pythonPath setting
-
-        // Build combined prompt
-        var fullPrompt = ""
-        if let systemPrompt = systemPrompt {
-            fullPrompt += "System: \(systemPrompt)\n\n"
-        }
-        fullPrompt += "User: \(prompt)\n\nAssistant:"
-
-        // Create Python MLX invocation
-        let script = """
-        import sys
-        import json
-        try:
-            import mlx_lm
-
-            prompt = '''
-            \(fullPrompt)
-            '''
-
-            model, tokenizer = mlx_lm.load("mlx-community/Llama-3.2-1B-Instruct-4bit")
-
-            response = mlx_lm.generate(
-                model,
-                tokenizer,
-                prompt=prompt,
-                max_tokens=\(maxTokens),
-                temp=\(temperature),
-                verbose=False
-            )
-
-            print(response)
-        except Exception as e:
-            print(json.dumps({"error": str(e)}), file=sys.stderr)
-            sys.exit(1)
-        """
-
-        // Write script to temp file
-        let tempDir = FileManager.default.temporaryDirectory
-        let scriptFile = tempDir.appendingPathComponent("mlx_generate_\(UUID().uuidString).py")
-        try script.write(to: scriptFile, atomically: true, encoding: .utf8)
-
-        defer {
-            try? FileManager.default.removeItem(at: scriptFile)
+        guard let baseURL = URL(string: omlxServerURL) else {
+            throw AIBackendError.invalidConfiguration
         }
 
-        // Execute Python script
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: pythonPath)
-        task.arguments = [scriptFile.path]
+        let model = OMLXLanguageModel.server(baseURL: baseURL, model: omlxModel)
+        let session = LanguageModelSession(model: model, instructions: systemPrompt)
+        let options = GenerationOptions(
+            temperature: Double(temperature),
+            maximumResponseTokens: maxTokens
+        )
 
-        let outputPipe = Pipe()
-        let errorPipe = Pipe()
-        task.standardOutput = outputPipe
-        task.standardError = errorPipe
-
-        try task.run()
-        task.waitUntilExit()
-
-        if task.terminationStatus != 0 {
-            let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-            let errorMessage = String(data: errorData, encoding: .utf8) ?? "Unknown error"
-            throw AIBackendError.mlxExecutionFailed(errorMessage)
-        }
-
-        let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
-        let output = String(data: outputData, encoding: .utf8) ?? ""
-
-        return output.trimmingCharacters(in: .whitespacesAndNewlines)
+        let response = try await session.respond(to: prompt, options: options)
+        return response.content.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     // MARK: - TinyLLM Implementation
@@ -673,8 +626,8 @@ class AIBackendManager: ObservableObject {
         switch backend {
         case .ollama:
             return try await generateEmbeddingsWithOllama(text: text)
-        case .mlx:
-            return try await generateEmbeddingsWithMLX(text: text)
+        case .omlx:
+            return try await generateEmbeddingsWithOMLX(text: text)
         case .tinyLLM:
             return try await generateEmbeddingsWithTinyLLM(text: text)
         case .tinyChat:
@@ -712,10 +665,35 @@ class AIBackendManager: ObservableObject {
         return response.embedding
     }
 
-    private func generateEmbeddingsWithMLX(text: String) async throws -> [Float] {
-        // MLX embeddings implementation would go here
-        // For now, throw not implemented
-        throw AIBackendError.embeddingsNotSupported
+    // oMLX embeddings via the local server's OpenAI-compatible embeddings endpoint.
+    // The dedicated provider (OMLXEmbeddingProvider, BGE-M3) is wired in via the
+    // EmbeddingProvider protocol; this inline path keeps the legacy
+    // AIBackendManager.generateEmbeddings() surface working for the oMLX backend.
+    private func generateEmbeddingsWithOMLX(text: String) async throws -> [Float] {
+        guard let url = URL(string: "\(omlxServerURL)/v1/embeddings") else {
+            throw AIBackendError.invalidConfiguration
+        }
+
+        let requestBody: [String: Any] = [
+            "input": text,
+            "model": omlxModel
+        ]
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+
+        struct OMLXEmbeddingResponse: Codable {
+            struct Item: Codable { let embedding: [Float] }
+            let data: [Item]
+        }
+
+        let decoder = JSONDecoder()
+        let response = try decoder.decode(OMLXEmbeddingResponse.self, from: data)
+        return response.data.first?.embedding ?? []
     }
 
     // TinyLLM embeddings via OpenAI-compatible API
@@ -818,22 +796,19 @@ enum AIBackendError: LocalizedError {
     case noBackendAvailable
     case invalidConfiguration
     case invalidState
-    case mlxScriptNotConfigured
-    case mlxExecutionFailed(String)
+    case omlxUnavailable
     case embeddingsNotSupported
 
     var errorDescription: String? {
         switch self {
         case .noBackendAvailable:
-            return "No AI backend available. Install Ollama or configure MLX."
+            return "No AI backend available. Start the oMLX server or install Ollama."
         case .invalidConfiguration:
             return "AI backend configuration is invalid."
         case .invalidState:
             return "AI backend is in an invalid state."
-        case .mlxScriptNotConfigured:
-            return "MLX script path not configured."
-        case .mlxExecutionFailed(let message):
-            return "MLX execution failed: \(message)"
+        case .omlxUnavailable:
+            return "The oMLX backend requires macOS 27 (Foundation Models)."
         case .embeddingsNotSupported:
             return "Embeddings not supported with current backend."
         }
@@ -894,11 +869,11 @@ struct AIBackendSettingsView: View {
                 }
 
                 HStack {
-                    Image(systemName: "cpu")
-                    Text("MLX Toolkit")
+                    Image(systemName: "server.rack")
+                    Text("oMLX (Local Server)")
                     Spacer()
-                    Text(manager.isMLXAvailable ? "Available" : "Unavailable")
-                        .foregroundColor(manager.isMLXAvailable ? .green : .secondary)
+                    Text(manager.isOMLXAvailable ? "Available" : "Unavailable")
+                        .foregroundColor(manager.isOMLXAvailable ? .green : .secondary)
                 }
 
                 HStack {
@@ -954,19 +929,23 @@ struct AIBackendSettingsView: View {
                 }
             }
 
-            if manager.isMLXAvailable || manager.selectedBackend == .mlx {
-                Section(header: Text("MLX Configuration")) {
-                    TextField("Python Path", text: $manager.pythonPath)
+            if manager.isOMLXAvailable || manager.selectedBackend == .omlx {
+                Section(header: Text("oMLX Configuration")) {
+                    TextField("Server URL", text: $manager.omlxServerURL)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .onChange(of: manager.pythonPath) { _ in
+                        .onChange(of: manager.omlxServerURL) { _ in
                             manager.saveSettings()
                         }
 
-                    TextField("MLX Script Path (optional)", text: $manager.mlxScriptPath)
+                    TextField("Model", text: $manager.omlxModel)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .onChange(of: manager.mlxScriptPath) { _ in
+                        .onChange(of: manager.omlxModel) { _ in
                             manager.saveSettings()
                         }
+
+                    Text("Runs on the local oMLX server via Foundation Models (macOS 27+).")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
             }
 

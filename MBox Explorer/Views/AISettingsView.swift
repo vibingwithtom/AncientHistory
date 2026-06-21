@@ -133,9 +133,9 @@ struct AISettingsView: View {
                                     .font(.caption)
                             }
                             HStack {
-                                Image(systemName: aiBackend.isMLXAvailable ? "checkmark.circle.fill" : "xmark.circle")
-                                    .foregroundColor(aiBackend.isMLXAvailable ? .green : .gray)
-                                Text("MLX Toolkit")
+                                Image(systemName: aiBackend.isOMLXAvailable ? "checkmark.circle.fill" : "xmark.circle")
+                                    .foregroundColor(aiBackend.isOMLXAvailable ? .green : .gray)
+                                Text("oMLX (Local Server)")
                                     .font(.caption)
                             }
                         }
