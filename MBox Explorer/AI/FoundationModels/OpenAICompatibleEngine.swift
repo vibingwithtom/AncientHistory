@@ -20,6 +20,20 @@
 
 import Foundation
 
+extension URLRequest {
+    /// Attach the configured OpenAI-compatible endpoint Bearer token, if one is set
+    /// (servers like oMLX return 401 "API key required" without it). Read from the
+    /// shared settings so every endpoint request — chat, embeddings, /v1/models —
+    /// is authorized the same way.
+    mutating func applyEndpointAuth() {
+        let key = (UserDefaults.standard.string(forKey: "AIBackendManager_EndpointAPIKey") ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if !key.isEmpty {
+            setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        }
+    }
+}
+
 /// HTTP client to a local OpenAI-compatible endpoint model server.
 struct OpenAICompatibleEngine: LLMEngine {
 
@@ -135,6 +149,7 @@ struct OpenAICompatibleEngine: LLMEngine {
         request.timeoutInterval = requestTimeout
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+        request.applyEndpointAuth()
 
         var body: [String: Any] = [
             "model": modelID,

@@ -110,8 +110,12 @@ class AIBackendManager: ObservableObject {
     @Published var endpointURL: String = "http://localhost:8000"
     @Published var endpointModel: String = "gemma-3-12b"          // chat / generation
     @Published var endpointEmbeddingModel: String = "bge-m3"      // embeddings
+    @Published var endpointAPIKey: String = ""                    // optional Bearer token
     /// Models advertised by the endpoint's /v1/models, for the settings pickers.
     @Published var availableEndpointModels: [String] = []
+
+    /// UserDefaults key the engine + embedding provider read for the Bearer token.
+    static let endpointAPIKeyDefaultsKey = "AIBackendManager_EndpointAPIKey"
 
     // TinyLLM-specific (Jason Cox)
     @Published var tinyLLMServerURL: String = "http://localhost:8000"
@@ -138,6 +142,7 @@ class AIBackendManager: ObservableObject {
         static let endpointURL = "AIBackendManager_EndpointURL"
         static let endpointModel = "AIBackendManager_EndpointModel"
         static let endpointEmbeddingModel = "AIBackendManager_EndpointEmbeddingModel"
+        static let endpointAPIKey = AIBackendManager.endpointAPIKeyDefaultsKey
         static let tinyLLMServerURL = "AIBackendManager_TinyLLMServerURL"
         static let tinyChatServerURL = "AIBackendManager_TinyChatServerURL"
         static let openWebUIServerURL = "AIBackendManager_OpenWebUIServerURL"
@@ -167,6 +172,7 @@ class AIBackendManager: ObservableObject {
         endpointURL = userDefaults.string(forKey: Keys.endpointURL) ?? "http://localhost:8000"
         endpointModel = userDefaults.string(forKey: Keys.endpointModel) ?? "gemma-3-12b"
         endpointEmbeddingModel = userDefaults.string(forKey: Keys.endpointEmbeddingModel) ?? "bge-m3"
+        endpointAPIKey = userDefaults.string(forKey: Keys.endpointAPIKey) ?? ""
         tinyLLMServerURL = userDefaults.string(forKey: Keys.tinyLLMServerURL) ?? "http://localhost:8000"
         tinyChatServerURL = userDefaults.string(forKey: Keys.tinyChatServerURL) ?? "http://localhost:8000"
         openWebUIServerURL = userDefaults.string(forKey: Keys.openWebUIServerURL) ?? "http://localhost:8080"
@@ -183,6 +189,7 @@ class AIBackendManager: ObservableObject {
         userDefaults.set(endpointURL, forKey: Keys.endpointURL)
         userDefaults.set(endpointModel, forKey: Keys.endpointModel)
         userDefaults.set(endpointEmbeddingModel, forKey: Keys.endpointEmbeddingModel)
+        userDefaults.set(endpointAPIKey, forKey: Keys.endpointAPIKey)
         userDefaults.set(tinyLLMServerURL, forKey: Keys.tinyLLMServerURL)
         userDefaults.set(tinyChatServerURL, forKey: Keys.tinyChatServerURL)
         userDefaults.set(openWebUIServerURL, forKey: Keys.openWebUIServerURL)
@@ -267,6 +274,7 @@ class AIBackendManager: ObservableObject {
         guard let url = URL(string: "\(endpointURL)/v1/models") else { return [] }
         var request = URLRequest(url: url)
         request.timeoutInterval = 5
+        request.applyEndpointAuth()
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             guard (response as? HTTPURLResponse)?.statusCode == 200 else {
@@ -455,6 +463,7 @@ class AIBackendManager: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.timeoutInterval = 3
+        request.applyEndpointAuth()
 
         do {
             let (_, response) = try await URLSession.shared.data(for: request)
@@ -844,12 +853,13 @@ class AIBackendManager: ObservableObject {
 
         let requestBody: [String: Any] = [
             "input": text,
-            "model": endpointModel
+            "model": endpointEmbeddingModel
         ]
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.applyEndpointAuth()
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
 
         let (data, _) = try await URLSession.shared.data(for: request)

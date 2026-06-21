@@ -164,6 +164,10 @@ struct AISettingsView: View {
                             }
                         }
 
+                        SecureField("API key (Bearer token, if the server requires one)", text: $aiBackend.endpointAPIKey)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .onChange(of: aiBackend.endpointAPIKey) { _ in aiBackend.saveSettings() }
+
                         // Chat model — picker when the server advertised models, else free text.
                         if aiBackend.availableEndpointModels.isEmpty {
                             TextField("Chat model (e.g. gemma-3-12b)", text: $aiBackend.endpointModel)

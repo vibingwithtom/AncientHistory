@@ -46,6 +46,7 @@ class OpenAICompatibleEmbeddingProvider: EmbeddingProvider, ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.timeoutInterval = 3
+        request.applyEndpointAuth()
 
         do {
             let (_, response) = try await URLSession.shared.data(for: request)
@@ -68,6 +69,7 @@ class OpenAICompatibleEmbeddingProvider: EmbeddingProvider, ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.applyEndpointAuth()
 
         let body: [String: Any] = [
             "model": model,
