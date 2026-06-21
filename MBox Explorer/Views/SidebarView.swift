@@ -95,7 +95,7 @@ struct SidebarView: View {
                         .padding(.horizontal)
                         .padding(.top, 8)
 
-                    ForEach([SidebarItem.allEmails, .ask, .network, .attachments, .analytics, .operations], id: \.self) { item in
+                    ForEach([SidebarItem.allEmails, .ask, .explore, .network, .attachments, .analytics, .operations], id: \.self) { item in
                         Button(action: { selectedView = item }) {
                             HStack {
                                 Label(item.rawValue, systemImage: icon(for: item))
@@ -164,6 +164,7 @@ struct SidebarView: View {
         switch item {
         case .allEmails: return "envelope.fill"
         case .ask: return "sparkles"
+        case .explore: return "theatermasks"
         case .network: return "point.3.connected.trianglepath.dotted"
         case .attachments: return "paperclip"
         case .analytics: return "chart.bar.xaxis"

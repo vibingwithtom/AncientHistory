@@ -69,6 +69,9 @@ struct ContentView: View {
                     if selectedView == .ask {
                         AskView(viewModel: viewModel)
                             .navigationSplitViewColumnWidth(min: 600, ideal: 900, max: 1400)
+                    } else if selectedView == .explore {
+                        ExploreView(viewModel: viewModel)
+                            .navigationSplitViewColumnWidth(min: 600, ideal: 900, max: 1400)
                     } else if selectedView == .network {
                         NetworkVisualizationView(emails: viewModel.emails)
                             .navigationSplitViewColumnWidth(min: 600, ideal: 900, max: 1400)
@@ -89,7 +92,7 @@ struct ContentView: View {
                         .navigationSplitViewColumnWidth(min: 300, ideal: 400, max: 600)
                     }
                 } detail: {
-                    if selectedView == .ask || selectedView == .network || selectedView == .attachments || selectedView == .analytics || selectedView == .operations {
+                    if selectedView == .ask || selectedView == .explore || selectedView == .network || selectedView == .attachments || selectedView == .analytics || selectedView == .operations {
                         // No detail view for these views
                         let title = selectedView == .attachments ? "Select an attachment" :
                                     selectedView == .analytics ? "Analytics Dashboard" : "MBOX Operations"
@@ -183,6 +186,7 @@ struct ContentView: View {
 enum SidebarItem: String, CaseIterable {
     case allEmails = "All Emails"
     case ask = "Ask AI"
+    case explore = "Explore"
     case network = "Network"
     case attachments = "Attachments"
     case analytics = "Analytics"
