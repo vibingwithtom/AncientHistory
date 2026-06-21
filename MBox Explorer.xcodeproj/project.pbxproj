@@ -74,7 +74,6 @@
 		D14768EF35BF6A052A83352A /* PatternDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 577366331045422A9C7E3502 /* PatternDetector.swift */; };
 		D8904F77CE2555AEAAD0E03C /* AskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DA6206E86CAEFE924E9D19C /* AskView.swift */; };
 		E4A2C652D0EE51C645582730 /* SentimentAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A626555D09AC8D8B0588A12 /* SentimentAnalyzer.swift */; };
-		E573DEB54B7EF36B8D867E6B /* NovaAPIServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7293E3CDEBC8AE4091F8ABC5 /* NovaAPIServer.swift */; };
 		E8CEF1C0C22D223F3665AE40 /* MBox Explorer Widget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 93353036E959F4AF619A7F93 /* MBox Explorer Widget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		EMB001010000000000000001 /* EmbeddingProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = EMB002010000000000000001 /* EmbeddingProvider.swift */; };
 		EMB001020000000000000001 /* OllamaEmbeddingProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = EMB002020000000000000001 /* OllamaEmbeddingProvider.swift */; };
@@ -185,7 +184,6 @@
 		4CD59F1BF5CEC75B95A34CBD /* EmailSummarizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AI/EmailSummarizer.swift; sourceTree = "<group>"; };
 		577366331045422A9C7E3502 /* PatternDetector.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PatternDetector.swift; path = AI/Intelligence/PatternDetector.swift; sourceTree = "<group>"; };
 		715C422C0916234B2233911C /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/Cocoa.framework; sourceTree = DEVELOPER_DIR; };
-		7293E3CDEBC8AE4091F8ABC5 /* NovaAPIServer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NovaAPIServer.swift; sourceTree = "<group>"; };
 		747630C04E4FCF77DDE62867 /* DecisionArchaeologist.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DecisionArchaeologist.swift; path = AI/Analysis/DecisionArchaeologist.swift; sourceTree = "<group>"; };
 		7A626555D09AC8D8B0588A12 /* SentimentAnalyzer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SentimentAnalyzer.swift; path = AI/Analysis/SentimentAnalyzer.swift; sourceTree = "<group>"; };
 		87A17940EE91B4170B99259A /* NetworkVisualizationView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NetworkVisualizationView.swift; sourceTree = "<group>"; };
@@ -475,7 +473,6 @@
 				C7A270A06C6F2802B6C6D7B9 /* AI */,
 				MD29EAC0C1C9846AF64C0DB3 /* ModernDesign.swift */,
 				B6AE4F6F079CBEA5FF43DBD7 /* AICapabilities */,
-				7293E3CDEBC8AE4091F8ABC5 /* NovaAPIServer.swift */,
 			);
 			path = "MBox Explorer";
 			sourceTree = "<group>";
@@ -899,7 +896,6 @@
 				31B32F335F40F33687FCD270 /* OpenWebUIEmbeddingProvider.swift in Sources */,
 				WD100001000000000000001 /* WidgetData.swift in Sources */,
 				WD100002000000000000001 /* SharedDataManager.swift in Sources */,
-				E573DEB54B7EF36B8D867E6B /* NovaAPIServer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
