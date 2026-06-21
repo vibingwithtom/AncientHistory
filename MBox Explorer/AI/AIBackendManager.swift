@@ -27,6 +27,8 @@ import FoundationModels
 enum AIBackend: String, Codable, CaseIterable {
     case ollama = "Ollama"
     case omlx = "oMLX (Local Server)"
+    case onDevice = "On-Device (Apple)"
+    case privateCloud = "Private Cloud Compute"
     case tinyLLM = "TinyLLM"
     case tinyChat = "TinyChat"
     case openWebUI = "OpenWebUI"
@@ -36,6 +38,8 @@ enum AIBackend: String, Codable, CaseIterable {
         switch self {
         case .ollama: return "network"
         case .omlx: return "server.rack"
+        case .onDevice: return "cpu"
+        case .privateCloud: return "lock.icloud"
         case .tinyLLM: return "cube"
         case .tinyChat: return "bubble.left.and.bubble.right.fill"
         case .openWebUI: return "globe"
@@ -49,6 +53,10 @@ enum AIBackend: String, Codable, CaseIterable {
             return "HTTP-based API (Ollama running on localhost:11434)"
         case .omlx:
             return "Local oMLX server via Foundation Models (requires macOS 27)"
+        case .onDevice:
+            return "Apple on-device model — fully private, no network (macOS 27)"
+        case .privateCloud:
+            return "Apple Private Cloud Compute — cloud inference with privacy guarantees (macOS 27)"
         case .tinyLLM:
             return "TinyLLM lightweight server (localhost:8000)"
         case .tinyChat:
@@ -86,6 +94,8 @@ class AIBackendManager: ObservableObject {
     @Published var activeBackend: AIBackend? = nil
     @Published var isOllamaAvailable = false
     @Published var isOMLXAvailable = false
+    @Published var isOnDeviceAvailable = false
+    @Published var isPrivateCloudAvailable = false
     @Published var isTinyLLMAvailable = false
     @Published var isTinyChatAvailable = false
     @Published var isOpenWebUIAvailable = false
@@ -188,6 +198,14 @@ class AIBackendManager: ObservableObject {
 
         isOllamaAvailable = ollama
         isOMLXAvailable = omlx
+        // Apple Foundation Models (on-device + Private Cloud Compute) are macOS 27+.
+        if #available(macOS 27.0, *) {
+            isOnDeviceAvailable = SystemLanguageModel.default.isAvailable
+            isPrivateCloudAvailable = PrivateCloudComputeLanguageModel().isAvailable
+        } else {
+            isOnDeviceAvailable = false
+            isPrivateCloudAvailable = false
+        }
         isTinyLLMAvailable = tinyLLM
         isTinyChatAvailable = tinyChat
         isOpenWebUIAvailable = openWebUI
@@ -202,6 +220,10 @@ class AIBackendManager: ObservableObject {
             activeBackend = isOllamaAvailable ? .ollama : nil
         case .omlx:
             activeBackend = isOMLXAvailable ? .omlx : nil
+        case .onDevice:
+            activeBackend = isOnDeviceAvailable ? .onDevice : nil
+        case .privateCloud:
+            activeBackend = isPrivateCloudAvailable ? .privateCloud : nil
         case .tinyLLM:
             activeBackend = isTinyLLMAvailable ? .tinyLLM : nil
         case .tinyChat:
@@ -361,6 +383,20 @@ class AIBackendManager: ObservableObject {
                 temperature: temperature,
                 maxTokens: maxTokens
             )
+        case .onDevice:
+            guard #available(macOS 27.0, *) else { throw AIBackendError.omlxUnavailable }
+            return try await generate(
+                with: SystemLanguageModel.default,
+                prompt: prompt, systemPrompt: systemPrompt,
+                temperature: temperature, maxTokens: maxTokens
+            )
+        case .privateCloud:
+            guard #available(macOS 27.0, *) else { throw AIBackendError.omlxUnavailable }
+            return try await generate(
+                with: PrivateCloudComputeLanguageModel(),
+                prompt: prompt, systemPrompt: systemPrompt,
+                temperature: temperature, maxTokens: maxTokens
+            )
         case .tinyLLM:
             return try await generateWithTinyLLM(
                 prompt: prompt,
@@ -447,14 +483,26 @@ class AIBackendManager: ObservableObject {
         guard let baseURL = URL(string: omlxServerURL) else {
             throw AIBackendError.invalidConfiguration
         }
-
         let model = OMLXLanguageModel.server(baseURL: baseURL, model: omlxModel)
+        return try await generate(with: model, prompt: prompt, systemPrompt: systemPrompt,
+                                  temperature: temperature, maxTokens: maxTokens)
+    }
+
+    /// Shared Foundation Models path: drives any LanguageModel (oMLX, Apple
+    /// on-device, or Private Cloud Compute) through a LanguageModelSession.
+    @available(macOS 27.0, *)
+    private func generate(
+        with model: some LanguageModel,
+        prompt: String,
+        systemPrompt: String?,
+        temperature: Float,
+        maxTokens: Int
+    ) async throws -> String {
         let session = LanguageModelSession(model: model, instructions: systemPrompt)
         let options = GenerationOptions(
             temperature: Double(temperature),
             maximumResponseTokens: maxTokens
         )
-
         let response = try await session.respond(to: prompt, options: options)
         return response.content.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -628,6 +676,10 @@ class AIBackendManager: ObservableObject {
             return try await generateEmbeddingsWithOllama(text: text)
         case .omlx:
             return try await generateEmbeddingsWithOMLX(text: text)
+        case .onDevice, .privateCloud:
+            // Apple's text models don't expose embeddings; use a dedicated
+            // embedding provider (e.g. oMLX BGE-M3) for semantic search instead.
+            throw AIBackendError.embeddingsNotSupported
         case .tinyLLM:
             return try await generateEmbeddingsWithTinyLLM(text: text)
         case .tinyChat:
