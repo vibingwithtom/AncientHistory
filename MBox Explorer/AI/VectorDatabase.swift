@@ -95,6 +95,13 @@ class VectorDatabase: ObservableObject {
         CREATE INDEX IF NOT EXISTS idx_from ON email_vectors(from_address);
         CREATE INDEX IF NOT EXISTS idx_date ON email_vectors(date);
 
+        -- Stamps the collection with the embedder identity {embedder_model, dim}
+        -- so queries can reject embeddings produced by a different model/dimension.
+        CREATE TABLE IF NOT EXISTS collection_meta (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        );
+
         CREATE VIRTUAL TABLE IF NOT EXISTS email_fts USING fts5(
             content,
             from_address,
@@ -130,6 +137,50 @@ class VectorDatabase: ObservableObject {
         }
     }
 
+    // MARK: - Embedder identity stamp
+
+    /// Record which embedder produced this collection's vectors. Subsequent queries
+    /// compare against this so embeddings from a different model/dimension are
+    /// rejected instead of silently producing meaningless similarities.
+    func stampEmbeddingIdentity(model: String, dimension: Int) {
+        dbQueue.sync {
+            let sql = "INSERT OR REPLACE INTO collection_meta (key, value) VALUES (?, ?);"
+            for (key, value) in [("embedder_model", model), ("embedder_dim", String(dimension))] {
+                var statement: OpaquePointer?
+                if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                    sqlite3_bind_text(statement, 1, key, -1, SQLITE_TRANSIENT)
+                    sqlite3_bind_text(statement, 2, value, -1, SQLITE_TRANSIENT)
+                    sqlite3_step(statement)
+                }
+                sqlite3_finalize(statement)
+            }
+        }
+    }
+
+    /// The embedder identity stamped at index time, or nil if the collection has
+    /// not been indexed with embeddings yet.
+    func stampedEmbeddingIdentity() -> (model: String, dimension: Int)? {
+        dbQueue.sync {
+            let sql = "SELECT key, value FROM collection_meta WHERE key IN ('embedder_model', 'embedder_dim');"
+            var statement: OpaquePointer?
+            var model: String?
+            var dimension: Int?
+            if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                while sqlite3_step(statement) == SQLITE_ROW {
+                    guard let keyPtr = sqlite3_column_text(statement, 0),
+                          let valuePtr = sqlite3_column_text(statement, 1) else { continue }
+                    let key = String(cString: keyPtr)
+                    let value = String(cString: valuePtr)
+                    if key == "embedder_model" { model = value }
+                    if key == "embedder_dim" { dimension = Int(value) }
+                }
+            }
+            sqlite3_finalize(statement)
+            guard let model, let dimension else { return nil }
+            return (model, dimension)
+        }
+    }
+
     /// Rebuild FTS5 index from email_vectors table
     private func rebuildFTSIndex() {
         dbQueue.sync {
@@ -155,6 +206,14 @@ class VectorDatabase: ObservableObject {
 
         // Refresh embedding status
         await refreshEmbeddingStatus()
+
+        // Stamp the collection with the embedder identity so later queries can
+        // detect a model/dimension change and refuse to mix embedding spaces.
+        if embeddingManager.useSemanticSearch {
+            let model = await MainActor.run { embeddingManager.selectedProvider.rawValue }
+            let dimension = await MainActor.run { embeddingManager.currentDimension }
+            stampEmbeddingIdentity(model: model, dimension: dimension)
+        }
 
         // Process in batches for efficiency
         let batchSize = 20
@@ -370,6 +429,18 @@ class VectorDatabase: ObservableObject {
 
     /// Semantic search using vector embeddings
     private func semanticSearch(query: String) async throws -> [SearchResult] {
+        // Reject the query if the active embedder differs from the one that
+        // produced the stored vectors — comparing across embedding spaces (or
+        // mismatched dimensions) yields meaningless results. search() then falls
+        // back to keyword search.
+        if let stamp = stampedEmbeddingIdentity() {
+            let currentModel = await MainActor.run { embeddingManager.selectedProvider.rawValue }
+            let currentDim = await MainActor.run { embeddingManager.currentDimension }
+            if stamp.model != currentModel || stamp.dimension != currentDim {
+                throw EmbeddingError.dimensionMismatch(expected: stamp.dimension, got: currentDim)
+            }
+        }
+
         // Generate query embedding using active provider
         let queryEmbedding = try await embeddingManager.generateEmbedding(for: query)
 
