@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B8EDEE56F4032D22EECD4062 /* ZipExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 458153E6299A968CB6583BCA /* ZipExtractor.swift */; };
 		F0133457F92D333CCAA3E635 /* OMLXEmbeddingProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B33E1876AFA33FBA6F64744 /* OMLXEmbeddingProvider.swift */; };
 		F3EAF0ED2BD9E12067C2879F /* OMLXEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A723031B9C1E0CE18B1D9CC7 /* OMLXEngine.swift */; };
 		98B3CC93CD924EE94A3286C5 /* OMLXLanguageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D846C16D1815B09DD20EE9FF /* OMLXLanguageModel.swift */; };
@@ -173,6 +174,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		458153E6299A968CB6583BCA /* ZipExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZipExtractor.swift; sourceTree = "<group>"; };
 		8B33E1876AFA33FBA6F64744 /* OMLXEmbeddingProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/Embeddings/OMLXEmbeddingProvider.swift"; sourceTree = "<group>"; };
 		A723031B9C1E0CE18B1D9CC7 /* OMLXEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/FoundationModels/OMLXEngine.swift"; sourceTree = "<group>"; };
 		D846C16D1815B09DD20EE9FF /* OMLXLanguageModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/FoundationModels/OMLXLanguageModel.swift"; sourceTree = "<group>"; };
@@ -652,6 +654,7 @@
 		NF300002000000000000001 /* Importers */ = {
 			isa = PBXGroup;
 			children = (
+				458153E6299A968CB6583BCA /* ZipExtractor.swift */,
 				NF200016000000000000001 /* MultiFormatImporter.swift */,
 			);
 			name = Importers;
@@ -825,6 +828,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B8EDEE56F4032D22EECD4062 /* ZipExtractor.swift in Sources */,
 				F0133457F92D333CCAA3E635 /* OMLXEmbeddingProvider.swift in Sources */,
 				F3EAF0ED2BD9E12067C2879F /* OMLXEngine.swift in Sources */,
 				98B3CC93CD924EE94A3286C5 /* OMLXLanguageModel.swift in Sources */,

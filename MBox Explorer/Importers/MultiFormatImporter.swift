@@ -265,14 +265,11 @@ class MultiFormatImporter: ObservableObject {
             try? FileManager.default.removeItem(at: tempDir)
         }
 
-        // Use Process to unzip
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
-        process.arguments = ["-q", url.path, "-d", tempDir.path]
-        try process.run()
-        process.waitUntilExit()
-
-        guard process.terminationStatus == 0 else {
+        // Extract natively (no subprocess) so this works under the app sandbox.
+        do {
+            try ZipExtractor.extract(url, to: tempDir)
+        } catch {
+            print("Gmail Takeout extraction failed: \(error.localizedDescription)")
             throw ImportError.decompressionFailed
         }
 
