@@ -17,7 +17,6 @@
 		050AE07D9F0290A9C9B59841 /* CommitmentTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 408098289A40C753C412475A /* CommitmentTracker.swift */; };
 		0ACC5F34C57FEAFED5D7DF30 /* DecisionArchaeologist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 747630C04E4FCF77DDE62867 /* DecisionArchaeologist.swift */; };
 		162EA02AA9581D8F680F992B /* TinyChatEmbeddingProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49684E8221083E6F0CE2A0E /* TinyChatEmbeddingProvider.swift */; };
-		21C49790555A4EC12B1343FD /* VoiceConversation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CEE96C78F48CEB6C7304C75 /* VoiceConversation.swift */; };
 		29A4A2C7786A5F418C391848 /* RelationshipMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5B3C2D9205F703C1F972B28 /* RelationshipMapper.swift */; };
 		31B32F335F40F33687FCD270 /* OpenWebUIEmbeddingProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 079E96CC45CDE63932C5618D /* OpenWebUIEmbeddingProvider.swift */; };
 		35623238323635642D613432662D343039662D623365342D /* OllamaClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38316534653438322D383937622D343030322D626162642D /* OllamaClient.swift */; };
@@ -41,7 +40,6 @@
 		BA654320B8AE457B9A856B6A /* NetworkVisualizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87A17940EE91B4170B99259A /* NetworkVisualizationView.swift */; };
 		BD768E39B961495776874418 /* ModernDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = MD29EAC0C1C9846AF64C0DB3 /* ModernDesign.swift */; };
 		C00B2C0479D170F97A8D05F4 /* AutoTagger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A989BC566E5181DAB386111 /* AutoTagger.swift */; };
-		C4118143D5658F992FCC5096 /* DailyBriefingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BAFBA37ED985C5CC8BF5BB8 /* DailyBriefingEngine.swift */; };
 		D004E8BD2EB1AA8900304FC0 /* AlertManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D004E8BC2EB1AA8900304FC0 /* AlertManager.swift */; };
 		D004E8C02EB1AAD300304FC0 /* ErrorDetailsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D004E8BE2EB1AAD300304FC0 /* ErrorDetailsView.swift */; };
 		D004E8C12EB1AAD300304FC0 /* ExportPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D004E8BF2EB1AAD300304FC0 /* ExportPreviewView.swift */; };
@@ -186,8 +184,6 @@
 		408098289A40C753C412475A /* CommitmentTracker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CommitmentTracker.swift; path = AI/Analysis/CommitmentTracker.swift; sourceTree = "<group>"; };
 		4CD59F1BF5CEC75B95A34CBD /* EmailSummarizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AI/EmailSummarizer.swift; sourceTree = "<group>"; };
 		577366331045422A9C7E3502 /* PatternDetector.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PatternDetector.swift; path = AI/Intelligence/PatternDetector.swift; sourceTree = "<group>"; };
-		6BAFBA37ED985C5CC8BF5BB8 /* DailyBriefingEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DailyBriefingEngine.swift; path = AI/Intelligence/DailyBriefingEngine.swift; sourceTree = "<group>"; };
-		6CEE96C78F48CEB6C7304C75 /* VoiceConversation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VoiceConversation.swift; path = AI/Advanced/VoiceConversation.swift; sourceTree = "<group>"; };
 		715C422C0916234B2233911C /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/Cocoa.framework; sourceTree = DEVELOPER_DIR; };
 		7293E3CDEBC8AE4091F8ABC5 /* NovaAPIServer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NovaAPIServer.swift; sourceTree = "<group>"; };
 		747630C04E4FCF77DDE62867 /* DecisionArchaeologist.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DecisionArchaeologist.swift; path = AI/Analysis/DecisionArchaeologist.swift; sourceTree = "<group>"; };
@@ -366,7 +362,6 @@
 				D25730EB8C5F369113033564 /* ConversationModels.swift */,
 				3CFA614AC3BD8853D16DB6E9 /* ConversationDatabase.swift */,
 				D01A68F1AFCB3C03DB4465E1 /* ConversationManager.swift */,
-				6CEE96C78F48CEB6C7304C75 /* VoiceConversation.swift */,
 				33C069D93706A1E5E158C2D2 /* ConversationView.swift */,
 			);
 			name = Conversation;
@@ -426,7 +421,6 @@
 		D87970D6F05B3258CDDD530B /* Intelligence */ = {
 			isa = PBXGroup;
 			children = (
-				6BAFBA37ED985C5CC8BF5BB8 /* DailyBriefingEngine.swift */,
 				3B07F30ECCC00A122F53B06D /* SmartSuggestions.swift */,
 				577366331045422A9C7E3502 /* PatternDetector.swift */,
 			);
@@ -864,10 +858,8 @@
 				E4A2C652D0EE51C645582730 /* SentimentAnalyzer.swift in Sources */,
 				050AE07D9F0290A9C9B59841 /* CommitmentTracker.swift in Sources */,
 				0ACC5F34C57FEAFED5D7DF30 /* DecisionArchaeologist.swift in Sources */,
-				C4118143D5658F992FCC5096 /* DailyBriefingEngine.swift in Sources */,
 				848B971FABD30CB498F9655A /* SmartSuggestions.swift in Sources */,
 				D14768EF35BF6A052A83352A /* PatternDetector.swift in Sources */,
-				21C49790555A4EC12B1343FD /* VoiceConversation.swift in Sources */,
 				A9149DF9944F63BE246AB2EF /* EmailSearchAgent.swift in Sources */,
 				8238508A80546774B50AD050 /* ConversationView.swift in Sources */,
 				EMB001010000000000000001 /* EmbeddingProvider.swift in Sources */,
