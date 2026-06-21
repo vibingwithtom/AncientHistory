@@ -12,7 +12,7 @@ import SwiftUI
 
 struct AskView: View {
     @ObservedObject var viewModel: MboxViewModel
-    @StateObject private var vectorDB = VectorDatabase()
+    @StateObject private var vectorDB = VectorDatabase.shared
     @StateObject private var llm = LocalLLM()
 
     @State private var question = ""

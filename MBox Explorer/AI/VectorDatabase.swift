@@ -19,6 +19,11 @@ private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.sel
 
 /// Local vector database for semantic search
 class VectorDatabase: ObservableObject {
+    /// Shared instance so the index state (isIndexed/totalDocuments) survives
+    /// view re-creation — switching sidebar items destroys and rebuilds AskView,
+    /// and a per-view instance would reset to "basic search mode" every time.
+    static let shared = VectorDatabase()
+
     @Published var isIndexed = false
     @Published var indexProgress: Double = 0.0
     @Published var totalDocuments = 0
