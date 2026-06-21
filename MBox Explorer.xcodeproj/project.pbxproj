@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AAEBEAF5824548F33BE4756C /* ThreadGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 831CE551CDE73E24F3F945F0 /* ThreadGraph.swift */; };
 		B8EDEE56F4032D22EECD4062 /* ZipExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 458153E6299A968CB6583BCA /* ZipExtractor.swift */; };
 		F0133457F92D333CCAA3E635 /* OpenAICompatibleEmbeddingProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B33E1876AFA33FBA6F64744 /* OpenAICompatibleEmbeddingProvider.swift */; };
 		F3EAF0ED2BD9E12067C2879F /* LLMEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A723031B9C1E0CE18B1D9CC7 /* LLMEngine.swift */; };
@@ -134,6 +135,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		831CE551CDE73E24F3F945F0 /* ThreadGraph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThreadGraph.swift; sourceTree = "<group>"; };
 		458153E6299A968CB6583BCA /* ZipExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZipExtractor.swift; sourceTree = "<group>"; };
 		8B33E1876AFA33FBA6F64744 /* OpenAICompatibleEmbeddingProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/Embeddings/OpenAICompatibleEmbeddingProvider.swift"; sourceTree = "<group>"; };
 		A723031B9C1E0CE18B1D9CC7 /* LLMEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/FoundationModels/LLMEngine.swift"; sourceTree = "<group>"; };
@@ -478,6 +480,7 @@
 		MB0000340000000000000001 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				831CE551CDE73E24F3F945F0 /* ThreadGraph.swift */,
 				NF200015000000000000001 /* TagManager.swift */,
 				NF200022000000000000001 /* SearchHistory.swift */,
 				D07875702EB1C18D00C75A43 /* AnalyticsEngine.swift */,
@@ -691,6 +694,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AAEBEAF5824548F33BE4756C /* ThreadGraph.swift in Sources */,
 				B8EDEE56F4032D22EECD4062 /* ZipExtractor.swift in Sources */,
 				F0133457F92D333CCAA3E635 /* OpenAICompatibleEmbeddingProvider.swift in Sources */,
 				F3EAF0ED2BD9E12067C2879F /* LLMEngine.swift in Sources */,

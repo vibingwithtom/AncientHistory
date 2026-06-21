@@ -223,32 +223,11 @@ class MboxParser: ObservableObject {
         return nil
     }
 
-    /// Group emails into threads
+    /// Group emails into threads using header-derived structure (Message-ID /
+    /// In-Reply-To / References), falling back to subject only when headers are
+    /// absent. See ThreadGraph.
     func detectThreads(emails: [Email]) -> [EmailThread] {
-        var threads: [String: [Email]] = [:]
-
-        for email in emails {
-            // Normalize subject (remove Re:, Fwd:, etc.)
-            let normalizedSubject = normalizeSubject(email.subject)
-            threads[normalizedSubject, default: []].append(email)
-        }
-
-        return threads.map { subject, emails in
-            EmailThread(subject: subject, emails: emails)
-        }.sorted { $0.emails.count > $1.emails.count }
-    }
-
-    private func normalizeSubject(_ subject: String) -> String {
-        var normalized = subject.lowercased()
-        let prefixes = ["re:", "fwd:", "fw:", "aw:"]
-
-        for prefix in prefixes {
-            while normalized.hasPrefix(prefix) {
-                normalized = String(normalized.dropFirst(prefix.count)).trimmingCharacters(in: .whitespaces)
-            }
-        }
-
-        return normalized
+        ThreadGraph.build(from: emails).threads()
     }
 }
 
