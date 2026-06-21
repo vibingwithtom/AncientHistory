@@ -15,6 +15,8 @@ struct AISettingsView: View {
     @StateObject private var embeddingManager = EmbeddingManager.shared
     @StateObject private var aiBackend = AIBackendManager.shared
 
+    @Environment(\.dismiss) private var dismiss
+
     @State private var serverURL: String = ""
     @State private var selectedLLMModel: String = ""
     @State private var selectedEmbeddingModel: String = ""
@@ -139,6 +141,46 @@ struct AISettingsView: View {
                                     .font(.caption)
                             }
                         }
+                    }
+                    .padding(.vertical, 8)
+                }
+
+                // MARK: - OpenAI-Compatible Endpoint Configuration
+                GroupBox(label: Label("OpenAI-Compatible Endpoint", systemImage: "server.rack")) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Any OpenAI-compatible server (oMLX, vLLM, LM Studio, …). Used when the \"OpenAI-Compatible Endpoint\" backend is selected (macOS 27).")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        TextField("Server URL (e.g. http://localhost:8000)", text: $aiBackend.endpointURL)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .onChange(of: aiBackend.endpointURL) { _ in
+                                aiBackend.saveSettings()
+                                Task { await aiBackend.checkBackendAvailability() }
+                            }
+
+                        TextField("Model (e.g. gemma-3-12b)", text: $aiBackend.endpointModel)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .onChange(of: aiBackend.endpointModel) { _ in
+                                aiBackend.saveSettings()
+                            }
+
+                        HStack {
+                            Circle()
+                                .fill(aiBackend.isEndpointAvailable ? Color.green : Color.gray)
+                                .frame(width: 8, height: 8)
+                            Text(aiBackend.isEndpointAvailable ? "Reachable" : "Not detected")
+                                .font(.caption)
+                                .foregroundColor(aiBackend.isEndpointAvailable ? .green : .gray)
+                            Spacer()
+                            Button("Test") {
+                                Task { await aiBackend.checkBackendAvailability() }
+                            }
+                        }
+
+                        Text("Posts to {URL}/v1/chat/completions. Requests run via Foundation Models on macOS 27.")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
                     }
                     .padding(.vertical, 8)
                 }
@@ -414,6 +456,15 @@ struct AISettingsView: View {
                 }
             }
             .padding()
+        }
+        .safeAreaInset(edge: .bottom) {
+            HStack {
+                Spacer()
+                Button("Done") { dismiss() }
+                    .keyboardShortcut(.defaultAction)
+            }
+            .padding()
+            .background(.bar)
         }
         .frame(minWidth: 550, minHeight: 600)
         .onAppear {
