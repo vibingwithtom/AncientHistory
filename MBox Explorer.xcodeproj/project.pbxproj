@@ -7,11 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		1942BFFDFA2C0B4763E1877F /* AttachmentExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B95B6F9F2A4E187B5EF2C4 /* AttachmentExtractor.swift */; };
-		DD1A48BFF267442DFFC74D45 /* AppleNLEmbeddingProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1FA2637E2AC4B38E3A4145E /* AppleNLEmbeddingProvider.swift */; };
 		050AE07D9F0290A9C9B59841 /* CommitmentTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 408098289A40C753C412475A /* CommitmentTracker.swift */; };
 		0ACC5F34C57FEAFED5D7DF30 /* DecisionArchaeologist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 747630C04E4FCF77DDE62867 /* DecisionArchaeologist.swift */; };
 		162EA02AA9581D8F680F992B /* TinyChatEmbeddingProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = D49684E8221083E6F0CE2A0E /* TinyChatEmbeddingProvider.swift */; };
+		1942BFFDFA2C0B4763E1877F /* AttachmentExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B95B6F9F2A4E187B5EF2C4 /* AttachmentExtractor.swift */; };
 		29A4A2C7786A5F418C391848 /* RelationshipMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5B3C2D9205F703C1F972B28 /* RelationshipMapper.swift */; };
 		31B32F335F40F33687FCD270 /* OpenWebUIEmbeddingProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 079E96CC45CDE63932C5618D /* OpenWebUIEmbeddingProvider.swift */; };
 		35623238323635642D613432662D343039662D623365342D /* AI/OllamaClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38316534653438322D383937622D343030322D626162642D /* AI/OllamaClient.swift */; };
@@ -75,6 +74,7 @@
 		D07875892EB1C54C00C75A43 /* ThreeColumnLayoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D07875882EB1C54C00C75A43 /* ThreeColumnLayoutView.swift */; };
 		D14768EF35BF6A052A83352A /* PatternDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 577366331045422A9C7E3502 /* PatternDetector.swift */; };
 		D8904F77CE2555AEAAD0E03C /* AskView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DA6206E86CAEFE924E9D19C /* AskView.swift */; };
+		DD1A48BFF267442DFFC74D45 /* AI/Embeddings/AppleNLEmbeddingProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1FA2637E2AC4B38E3A4145E /* AI/Embeddings/AppleNLEmbeddingProvider.swift */; };
 		E4A2C652D0EE51C645582730 /* SentimentAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A626555D09AC8D8B0588A12 /* SentimentAnalyzer.swift */; };
 		E827EF6D575C4A1D19DA5712 /* AI/FoundationModels/EvalHarness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 901C11A65E827B4A2FD75FF2 /* AI/FoundationModels/EvalHarness.swift */; };
 		EMB001010000000000000001 /* EmbeddingProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = EMB002010000000000000001 /* EmbeddingProvider.swift */; };
@@ -141,8 +141,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		A1B95B6F9F2A4E187B5EF2C4 /* AttachmentExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentExtractor.swift; sourceTree = "<group>"; };
-		A1FA2637E2AC4B38E3A4145E /* AppleNLEmbeddingProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AI/Embeddings/AppleNLEmbeddingProvider.swift"; sourceTree = "<group>"; };
 		079E96CC45CDE63932C5618D /* OpenWebUIEmbeddingProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = OpenWebUIEmbeddingProvider.swift; path = AI/Embeddings/OpenWebUIEmbeddingProvider.swift; sourceTree = "<group>"; };
 		1A6D6C4E189283A97C610D5E /* Views/ExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/ExploreView.swift; sourceTree = "<group>"; };
 		1DA6206E86CAEFE924E9D19C /* AskView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AskView.swift; sourceTree = "<group>"; };
@@ -173,6 +171,8 @@
 		901C11A65E827B4A2FD75FF2 /* AI/FoundationModels/EvalHarness.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AI/FoundationModels/EvalHarness.swift; sourceTree = "<group>"; };
 		9A989BC566E5181DAB386111 /* AI/AutoTagger.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AI/AutoTagger.swift; sourceTree = "<group>"; };
 		9E193CEF63B5CDA85E716A1C /* MBox_ExplorerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MBox_ExplorerTests.swift; sourceTree = "<group>"; };
+		A1B95B6F9F2A4E187B5EF2C4 /* AttachmentExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentExtractor.swift; sourceTree = "<group>"; };
+		A1FA2637E2AC4B38E3A4145E /* AI/Embeddings/AppleNLEmbeddingProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AI/Embeddings/AppleNLEmbeddingProvider.swift; sourceTree = "<group>"; };
 		A5F4CE25F784349CFA39C493 /* MBox ExplorerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "MBox ExplorerTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A723031B9C1E0CE18B1D9CC7 /* AI/FoundationModels/LLMEngine.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AI/FoundationModels/LLMEngine.swift; sourceTree = "<group>"; };
 		AC1D23BF3DDCB135FBB559BB /* AtomicFragment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtomicFragment.swift; sourceTree = "<group>"; };
@@ -397,7 +397,7 @@
 		EMB003000000000000000001 /* Embeddings */ = {
 			isa = PBXGroup;
 			children = (
-				A1FA2637E2AC4B38E3A4145E /* AppleNLEmbeddingProvider.swift */,
+				A1FA2637E2AC4B38E3A4145E /* AI/Embeddings/AppleNLEmbeddingProvider.swift */,
 				8B33E1876AFA33FBA6F64744 /* AI/Embeddings/OpenAICompatibleEmbeddingProvider.swift */,
 				EMB002010000000000000001 /* EmbeddingProvider.swift */,
 				EMB002020000000000000001 /* OllamaEmbeddingProvider.swift */,
@@ -715,7 +715,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1942BFFDFA2C0B4763E1877F /* AttachmentExtractor.swift in Sources */,
-				DD1A48BFF267442DFFC74D45 /* AppleNLEmbeddingProvider.swift in Sources */,
+				DD1A48BFF267442DFFC74D45 /* AI/Embeddings/AppleNLEmbeddingProvider.swift in Sources */,
 				45448947D205D72AD911DB75 /* Views/ExploreView.swift in Sources */,
 				42377A21F1A89A0D26188414 /* AI/Explore/HypotheticalExplorer.swift in Sources */,
 				7243A558D924F0F32CDCCA6F /* AI/Explore/PersonaSimulator.swift in Sources */,
