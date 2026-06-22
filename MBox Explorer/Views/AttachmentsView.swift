@@ -170,6 +170,9 @@ struct AttachmentsView: View {
 
         panel.begin { (response: NSApplication.ModalResponse) in
             if response == .OK, let url = panel.url {
+                // Sandbox: claim access to the chosen output folder before writing.
+                let accessed = url.startAccessingSecurityScopedResource()
+                defer { if accessed { url.stopAccessingSecurityScopedResource() } }
                 let attachmentsToExport = filteredAttachments.filter { selectedAttachments.contains($0.id) }
                 do {
                     try AttachmentManager.exportAttachments(attachmentsToExport, to: url)
@@ -190,6 +193,9 @@ struct AttachmentsView: View {
 
         panel.begin { (response: NSApplication.ModalResponse) in
             if response == .OK, let url = panel.url {
+                // Sandbox: claim access to the chosen save location before writing.
+                let accessed = url.startAccessingSecurityScopedResource()
+                defer { if accessed { url.stopAccessingSecurityScopedResource() } }
                 do {
                     var content = "Attachment Information\n"
                     content += "=====================\n\n"
