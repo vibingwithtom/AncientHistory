@@ -250,6 +250,9 @@ struct SheetsModifier: ViewModifier {
             .sheet(isPresented: $viewModel.showingThemeSettings) {
                 ThemeSettingsView(isPresented: $viewModel.showingThemeSettings)
             }
+            .sheet(isPresented: $viewModel.showingAbout) {
+                AboutView(isPresented: $viewModel.showingAbout)
+            }
             // Note: Add DuplicatesView.swift to Xcode project to enable this feature
             // .sheet(isPresented: $viewModel.showingDuplicates) {
             //     DuplicatesView(viewModel: viewModel)
@@ -332,6 +335,9 @@ private struct ViewNotifications: ViewModifier {
             .onReceive(NotificationCenter.default.publisher(for: .showThemeSettings)) { _ in
                 viewModel.showingThemeSettings = true
             }
+            .onReceive(NotificationCenter.default.publisher(for: .showAbout)) { _ in
+                viewModel.showingAbout = true
+            }
             .onReceive(NotificationCenter.default.publisher(for: .showAISettings)) { _ in
                 openAISettingsWindow()
             }
@@ -383,6 +389,98 @@ private struct ActionNotifications: ViewModifier {
                 viewModel.deleteSelectedEmail()
             }
     }
+}
+
+// MARK: - About / Acknowledgements
+
+/// About panel that also satisfies the MIT attribution requirement for binary
+/// distribution: the original copyright + permission notice must travel with
+/// every copy of the software, including the shipped app. The license text is
+/// embedded (not read from a bundled file) so it can never be missing at runtime.
+struct AboutView: View {
+    @Binding var isPresented: Bool
+
+    private var appVersion: String {
+        let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+        let b = Bundle.main.infoDictionary?["CFBundleVersion"] as? String
+        return b.map { "\(v) (\($0))" } ?? v
+    }
+
+    private let upstreamURL = "https://github.com/kochj23/MBox-Explorer"
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("About Ancient History").font(.headline)
+                Spacer()
+                Button("Done") { isPresented = false }
+                    .keyboardShortcut(.defaultAction)
+            }
+            .padding()
+            Divider()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Ancient History").font(.title2.bold())
+                        Text("Version \(appVersion)")
+                            .font(.caption).foregroundColor(.secondary)
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Credits").font(.subheadline.bold())
+                        Text("A fork of **MBox Explorer** by Jordan Koch, used under the MIT License.")
+                        Link(upstreamURL, destination: URL(string: upstreamURL)!)
+                            .font(.callout)
+                    }
+
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("License").font(.subheadline.bold())
+                        Text(Self.licenseText)
+                            .font(.system(.caption, design: .monospaced))
+                            .textSelection(.enabled)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
+            }
+        }
+        .frame(minWidth: 560, minHeight: 520)
+    }
+
+    /// MIT License — keep in sync with the repository LICENSE file. Must include
+    /// the original copyright notice and the permission notice verbatim.
+    static let licenseText = """
+    MIT License
+
+    Copyright (c) 2025 Jordan Koch (MBox Explorer, the original work)
+    Copyright (c) 2026 Ancient History contributors (modifications)
+
+    Ancient History is a fork of MBox Explorer
+    (https://github.com/kochj23/MBox-Explorer), used and redistributed under the
+    terms of the MIT License below.
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+    """
 }
 
 // MARK: - Preview

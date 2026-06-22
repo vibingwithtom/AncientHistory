@@ -38,6 +38,7 @@ class MboxViewModel: ObservableObject {
         var showingRegexSearch = false
         var showingRedactionTool = false
         var showingThemeSettings = false
+        var showingAbout = false
         var showOpenPanel = false
         var showExportPanel = false
         var showSettings = false
@@ -146,6 +147,10 @@ class MboxViewModel: ObservableObject {
     var showingThemeSettings: Bool {
         get { displayState.showingThemeSettings }
         set { displayState.showingThemeSettings = newValue }
+    }
+    var showingAbout: Bool {
+        get { displayState.showingAbout }
+        set { displayState.showingAbout = newValue }
     }
     var showOpenPanel: Bool {
         get { displayState.showOpenPanel }
