@@ -145,20 +145,44 @@ class MboxParser: ObservableObject {
         var attachments: [AttachmentInfo] = []
         var seenFilenames = Set<String>()
         var currentContentType = "application/octet-stream"
+        var inHeaders = true        // header section vs body of the current MIME part
+        var inNamedHeader = false   // current (possibly folded) header is Content-Type/Disposition
 
         for raw in chunk.components(separatedBy: "\n") {
-            let line = raw.trimmingCharacters(in: .whitespaces)
-            let lower = line.lowercased()
+            let trimmed = raw.trimmingCharacters(in: .whitespaces)
 
-            if lower.hasPrefix("content-type:") {
-                let value = line.dropFirst("content-type:".count).trimmingCharacters(in: .whitespaces)
-                currentContentType = value.components(separatedBy: ";").first?
-                    .trimmingCharacters(in: .whitespaces) ?? value
+            if trimmed.hasPrefix("--") {        // MIME boundary -> the next part's headers
+                inHeaders = true
+                inNamedHeader = false
+                continue
+            }
+            if trimmed.isEmpty {                // blank line -> the part's body begins
+                inHeaders = false
+                inNamedHeader = false
+                continue
+            }
+            guard inHeaders else { continue }   // never scan body content for name=/filename=
+
+            // A folded header continues the previous field (leading whitespace).
+            if !(raw.first == " " || raw.first == "\t") {
+                let lower = trimmed.lowercased()
+                if lower.hasPrefix("content-type:") {
+                    let value = trimmed.dropFirst("content-type:".count).trimmingCharacters(in: .whitespaces)
+                    currentContentType = value.components(separatedBy: ";").first?
+                        .trimmingCharacters(in: .whitespaces) ?? value
+                    inNamedHeader = true
+                } else if lower.hasPrefix("content-disposition:") {
+                    inNamedHeader = true
+                } else {
+                    inNamedHeader = false
+                }
             }
 
-            // A name= (Content-Type) or filename= (Content-Disposition) parameter
-            // marks a named part; pair it with the part's current Content-Type.
-            guard let filename = Self.filenameParameter(in: line) else { continue }
+            // Only Content-Type / Content-Disposition headers (and their folded
+            // continuations) carry a name=/filename= attachment parameter — not
+            // body text, e.g. "<meta name=3DGENERATOR>" in a quoted-printable HTML
+            // part, which previously produced bogus "3DGENERATOR>" attachments.
+            guard inNamedHeader, let filename = Self.filenameParameter(in: trimmed) else { continue }
             if currentContentType.lowercased().contains("multipart") { continue }
             if seenFilenames.contains(filename) { continue }
             seenFilenames.insert(filename)
