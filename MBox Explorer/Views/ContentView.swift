@@ -10,6 +10,7 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var viewModel = MboxViewModel()
     @StateObject private var alertManager = AlertManager()
+    @ObservedObject private var themeManager = ThemeManager.shared
     @EnvironmentObject var recentFilesViewModel: RecentFilesViewModel
     @State private var selectedView: SidebarItem = .allEmails
     @State private var showingFilePicker = false
@@ -19,7 +20,11 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            GlassmorphicBackground()
+            // Theme-driven base. Replaces the fixed cyan/purple/pink animated
+            // GlassmorphicBackground (which ignored the selected theme) so the
+            // chosen theme — including true-black AMOLED — actually shows.
+            themeManager.backgroundColor(for: themeManager.currentTheme)
+                .ignoresSafeArea()
 
             mainView
                 .modifier(SheetsModifier(viewModel: viewModel, alertManager: alertManager, showingExportPicker: $showingExportPicker))
@@ -41,11 +46,18 @@ struct ContentView: View {
                 }
                 .onAppear {
                     viewModel.alertManager = alertManager
+                    // Re-apply once the window exists so window-chrome theming
+                    // takes effect on first launch (init runs before any window).
+                    themeManager.applyTheme()
                 }
                 .fileDropTarget { url in
                     loadMboxFile(url)
                 }
         }
+        // Drive the whole app's accent/selection highlight from the theme, so
+        // picking a theme (Nord, Solarized, Custom…) actually recolors controls
+        // and selection — not just the settings preview swatch.
+        .tint(themeManager.accentColor(for: themeManager.currentTheme))
     }
 
     private var mainView: some View {

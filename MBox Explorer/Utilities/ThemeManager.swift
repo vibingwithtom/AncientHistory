@@ -52,7 +52,7 @@ class ThemeManager: ObservableObject {
     }
 
     func applyTheme() {
-        // Update app appearance
+        // Update app appearance (light/dark substrate for the system controls).
         switch currentTheme {
         case .system:
             NSApp.appearance = nil
@@ -64,6 +64,26 @@ class ThemeManager: ObservableObject {
             NSApp.appearance = NSAppearance(named: .accessibilityHighContrastDarkAqua)
         case .amoled, .solarized, .nord, .custom:
             NSApp.appearance = NSAppearance(named: .darkAqua)
+        }
+        applyWindowBackground()
+    }
+
+    /// Tint the window chrome (titlebar/resize area) to the theme background so
+    /// custom-palette themes — especially true-black AMOLED — aren't framed by
+    /// the default dark-gray window color. System/Light keep the OS default.
+    private func applyWindowBackground() {
+        let theme = currentTheme
+        DispatchQueue.main.async {
+            let color: NSColor
+            switch theme {
+            case .system, .light:
+                color = .windowBackgroundColor
+            default:
+                color = NSColor(self.backgroundColor(for: theme))
+            }
+            for window in NSApp.windows {
+                window.backgroundColor = color
+            }
         }
     }
 
