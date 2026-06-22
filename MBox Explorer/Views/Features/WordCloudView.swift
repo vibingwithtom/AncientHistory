@@ -16,6 +16,7 @@ struct WordCloudView: View {
     @State private var sourceType: WordCloudSource = .subjects
     @State private var dateFilter: DateFilterOption = .all
     @State private var isGenerating = false
+    @State private var showingEmailSheet = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -45,6 +46,23 @@ struct WordCloudView: View {
         .background(Color(NSColor.controlBackgroundColor))
         .onAppear {
             generateWordCloud()
+        }
+        .sheet(isPresented: $showingEmailSheet) {
+            // No email-detail pane in this view, so present the tapped email in a sheet.
+            VStack(spacing: 0) {
+                HStack {
+                    Text(viewModel.selectedEmail?.subject ?? "Email")
+                        .font(.headline)
+                        .lineLimit(1)
+                    Spacer()
+                    Button("Done") { showingEmailSheet = false }
+                        .keyboardShortcut(.defaultAction)
+                }
+                .padding()
+                Divider()
+                EmailDetailView(viewModel: viewModel)
+            }
+            .frame(minWidth: 640, minHeight: 520)
         }
     }
 
@@ -181,6 +199,7 @@ struct WordCloudView: View {
                             .padding(.vertical, 4)
                             .onTapGesture {
                                 viewModel.selectedEmail = email
+                                showingEmailSheet = true
                             }
                         }
                     }
