@@ -15,6 +15,7 @@ struct TimelineView: View {
     @State private var zoomLevel: TimelineZoom = .month
     @State private var scrollOffset: CGFloat = 0
     @State private var hoveredDay: Date?
+    @State private var showingEmailSheet = false
 
     private let dayWidth: CGFloat = 20
     private let maxBarHeight: CGFloat = 100
@@ -34,6 +35,24 @@ struct TimelineView: View {
             }
         }
         .background(Color(NSColor.controlBackgroundColor))
+        .sheet(isPresented: $showingEmailSheet) {
+            // This view runs in its own standalone window (MultiWindowManager)
+            // with no email-detail pane, so present the selected email in a sheet.
+            VStack(spacing: 0) {
+                HStack {
+                    Text(viewModel.selectedEmail?.subject ?? "Email")
+                        .font(.headline)
+                        .lineLimit(1)
+                    Spacer()
+                    Button("Done") { showingEmailSheet = false }
+                        .keyboardShortcut(.defaultAction)
+                }
+                .padding()
+                Divider()
+                EmailDetailView(viewModel: viewModel)
+            }
+            .frame(minWidth: 640, minHeight: 520)
+        }
     }
 
     // MARK: - Header
@@ -216,6 +235,7 @@ struct TimelineView: View {
                             .padding(.vertical, 2)
                             .onTapGesture {
                                 viewModel.selectedEmail = email
+                                showingEmailSheet = true
                             }
                         }
 
