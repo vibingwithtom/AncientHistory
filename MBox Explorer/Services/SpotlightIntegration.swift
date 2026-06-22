@@ -326,7 +326,7 @@ struct SpotlightSettingsView: View {
                 }
             }
         } message: {
-            Text("This will remove all MBox Explorer emails from Spotlight search.")
+            Text("This will remove all Ancient History emails from Spotlight search.")
         }
     }
 }

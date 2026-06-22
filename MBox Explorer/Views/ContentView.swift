@@ -161,7 +161,7 @@ struct ContentView: View {
     private func showExportDirectoryPicker() {
         let panel = NSSavePanel()
         panel.canCreateDirectories = true
-        panel.nameFieldStringValue = "MBox Export"
+        panel.nameFieldStringValue = "Ancient History Export"
         panel.message = "Choose export directory"
         panel.canCreateDirectories = true
 

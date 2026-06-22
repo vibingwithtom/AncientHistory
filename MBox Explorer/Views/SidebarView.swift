@@ -157,7 +157,7 @@ struct SidebarView: View {
                 }
             }
         }
-        .navigationTitle("MBox Explorer")
+        .navigationTitle("Ancient History")
     }
 
     private func icon(for item: SidebarItem) -> String {

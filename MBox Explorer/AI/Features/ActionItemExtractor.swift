@@ -173,7 +173,7 @@ class ActionItemExtractor: ObservableObject {
     func exportToReminders(items: [ActionItem]) -> String {
         // Generate AppleScript for Reminders import
         var script = "tell application \"Reminders\"\n"
-        script += "  set mboxList to list \"MBox Action Items\"\n"
+        script += "  set mboxList to list \"Ancient History Action Items\"\n"
 
         for item in items {
             let title = item.description.replacingOccurrences(of: "\"", with: "\\\"")
