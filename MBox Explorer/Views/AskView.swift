@@ -135,6 +135,18 @@ struct AskView: View {
                             }
                         }
 
+                        // Last-query retrieval mode (testing visibility: did it use
+                        // the embeddings / FTS index, or fall back?)
+                        if vectorDB.lastSearchMode != .none {
+                            HStack(spacing: 4) {
+                                Image(systemName: "magnifyingglass")
+                                    .font(.caption2)
+                                Text("Last query: \(vectorDB.lastSearchMode.rawValue)")
+                                    .font(.caption)
+                            }
+                            .foregroundColor(vectorDB.lastSearchMode == .semantic ? .green : .secondary)
+                        }
+
                         // Conversation memory indicator
                         if llm.useConversationMemory && !llm.conversationHistory.isEmpty {
                             Text("• \(llm.conversationHistory.count / 2) turns in memory")

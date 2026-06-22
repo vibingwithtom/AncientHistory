@@ -12,13 +12,26 @@
 
 import Foundation
 import SQLite3
+import os
 
 /// SQLite transient destructor - tells SQLite to copy string data immediately
 /// This is critical for Swift strings which may be deallocated after the call
 private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
+/// How the most recent Ask query was actually resolved — so testing can confirm
+/// whether the index/embeddings are really being used vs falling back.
+enum SearchMode: String {
+    case semantic = "Semantic (vector)"
+    case keyword = "Keyword (FTS5)"
+    case sample = "Sample (no match)"
+    case directScan = "Direct scan (no index)"
+    case none = "—"
+}
+
 /// Local vector database for semantic search
 class VectorDatabase: ObservableObject {
+    private static let log = Logger(subsystem: "com.raia.AncientHistory", category: "search")
+
     /// Shared instance so the index state (isIndexed/totalDocuments) survives
     /// view re-creation — switching sidebar items destroys and rebuilds AskView,
     /// and a per-view instance would reset to "basic search mode" every time.
@@ -30,6 +43,8 @@ class VectorDatabase: ObservableObject {
     @Published var useSemanticSearch = false
     @Published var embeddingProvider: String = "None"
     @Published var embeddingDimension: Int = 0
+    /// Mode that resolved the most recent search() / directSearch() call.
+    @Published var lastSearchMode: SearchMode = .none
 
     private var db: OpaquePointer?
     private let dbPath: String
@@ -370,7 +385,7 @@ class VectorDatabase: ObservableObject {
             do {
                 let results = try await semanticSearch(query: query)
                 if !results.isEmpty {
-                    return results
+                    return await recordMode(.semantic, count: results.count, results)
                 }
             } catch {
                 print("Semantic search failed (\(embeddingManager.selectedProvider.rawValue)), falling back to FTS: \(error.localizedDescription)")
@@ -382,14 +397,23 @@ class VectorDatabase: ObservableObject {
         if !keywords.isEmpty {
             let ftsResults = await keywordSearch(query: keywords)
             if !ftsResults.isEmpty {
-                return ftsResults
+                return await recordMode(.keyword, count: ftsResults.count, ftsResults)
             }
         }
 
         // CREATIVE FALLBACK: If no search results, return a diverse sample of emails
         // This ensures the LLM always has context to work with for summary/overview questions
-        print("No search matches found, returning email sample for context")
-        return await getEmailSample(limit: 20)
+        let sample = await getEmailSample(limit: 20)
+        return await recordMode(.sample, count: sample.count, sample)
+    }
+
+    /// Publish + log which path resolved a search, so testing can confirm the
+    /// index/embeddings are actually being used. Visible in the unified log via
+    /// `log stream --predicate 'subsystem == "com.raia.AncientHistory"'`.
+    private func recordMode(_ mode: SearchMode, count: Int, _ results: [SearchResult]) async -> [SearchResult] {
+        Self.log.notice("Ask query resolved via \(mode.rawValue, privacy: .public) — \(count) result(s)")
+        await MainActor.run { self.lastSearchMode = mode }
+        return results
     }
 
     /// Extract meaningful keywords from a natural language query
@@ -654,6 +678,9 @@ class VectorDatabase: ObservableObject {
     /// Direct search through emails without requiring indexing
     /// This is a fallback when emails haven't been indexed yet
     func directSearch(query: String, emails: [Email], limit: Int = 20) -> [SearchResult] {
+        // Called from AskView only inside MainActor.run, so the @Published write is safe.
+        Self.log.notice("Ask query resolved via \(SearchMode.directScan.rawValue, privacy: .public) — no index built")
+        lastSearchMode = .directScan
         let queryTerms = query.lowercased().split(separator: " ").map { String($0) }
 
         var scoredResults: [(email: Email, score: Int)] = []
@@ -687,6 +714,24 @@ class VectorDatabase: ObservableObject {
         let topResults = scoredResults
             .sorted { $0.score > $1.score }
             .prefix(limit)
+
+        // If nothing scored, return a sample of emails so summary/overview questions
+        // always have content — mirrors the getEmailSample fallback in the indexed path.
+        if topResults.isEmpty {
+            print("No direct search matches found, returning email sample for context")
+            return Array(emails.suffix(limit)).map { email in
+                let snippet = String(email.body.prefix(300))
+                return SearchResult(
+                    emailId: email.messageId ?? email.id.uuidString,
+                    content: email.body,
+                    from: email.from,
+                    subject: email.subject,
+                    date: email.date,
+                    snippet: snippet,
+                    score: 0.5
+                )
+            }
+        }
 
         return topResults.map { item in
             let snippet = String(item.email.body.prefix(300))
