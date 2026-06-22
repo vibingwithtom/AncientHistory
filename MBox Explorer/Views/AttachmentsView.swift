@@ -15,9 +15,14 @@ struct AttachmentsView: View {
     @State private var sortOrder: AttachmentManager.SortOrder = .ascending
     @State private var selectedAttachments: Set<UUID> = []
     @State private var showingExportDialog = false
+    // Cache the extracted attachments so each keeps a STABLE id across renders.
+    // ExtendedAttachmentInfo gets a fresh UUID on construction, so recomputing the
+    // list each render would invalidate row selection (the top "Export" button then
+    // matches nothing and exports an empty manifest).
+    @State private var cachedAttachments: [AttachmentManager.ExtendedAttachmentInfo] = []
 
     var allAttachments: [AttachmentManager.ExtendedAttachmentInfo] {
-        AttachmentManager.extractAllAttachments(from: viewModel.emails)
+        cachedAttachments
     }
 
     var filteredAttachments: [AttachmentManager.ExtendedAttachmentInfo] {
@@ -111,11 +116,21 @@ struct AttachmentsView: View {
                     set: { _ in }
                 )) {
                     ForEach(filteredAttachments) { info in
-                        AttachmentRow(info: info, isSelected: selectedAttachments.contains(info.id))
-                            .onTapGesture {
-                                toggleSelection(info.id)
+                        HStack(spacing: 8) {
+                            AttachmentRow(info: info, isSelected: selectedAttachments.contains(info.id))
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    toggleSelection(info.id)
+                                }
+                            Button {
+                                exportSingleAttachment(info)
+                            } label: {
+                                Image(systemName: "square.and.arrow.down")
                             }
-                            .contextMenu {
+                            .buttonStyle(.borderless)
+                            .help("Save attachment")
+                        }
+                        .contextMenu {
                                 Button {
                                     NSPasteboard.general.clearContents()
                                     NSPasteboard.general.setString(info.filename, forType: .string)
@@ -149,6 +164,15 @@ struct AttachmentsView: View {
                 isPresented: $showingExportDialog,
                 onExport: { exportSelectedAttachments() }
             )
+        }
+        .onAppear {
+            if cachedAttachments.isEmpty {
+                cachedAttachments = AttachmentManager.extractAllAttachments(from: viewModel.emails)
+            }
+        }
+        .onChange(of: viewModel.emails.count) { _, _ in
+            cachedAttachments = AttachmentManager.extractAllAttachments(from: viewModel.emails)
+            selectedAttachments.removeAll()
         }
     }
 
