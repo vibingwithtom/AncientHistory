@@ -349,7 +349,12 @@ class VectorDatabase: ObservableObject {
                 // Swift strings are temporary and may be deallocated after this call
                 // SQLITE_TRANSIENT tells SQLite to make its own copy immediately
                 sqlite3_bind_text(statement, 1, email.id.uuidString, -1, SQLITE_TRANSIENT)
-                sqlite3_bind_text(statement, 2, email.messageId, -1, SQLITE_TRANSIENT)
+                // email_id must never be NULL: every read path (semanticSearch,
+                // keywordSearch, getEmailSample) does `guard let` on this column and
+                // skips the row when it's null. Emails without a Message-ID header
+                // (e.g. older archives) would otherwise be indexed but invisible to
+                // all retrieval. Fall back to the always-present stable UUID.
+                sqlite3_bind_text(statement, 2, email.messageId ?? email.id.uuidString, -1, SQLITE_TRANSIENT)
                 sqlite3_bind_text(statement, 3, email.body, -1, SQLITE_TRANSIENT)
 
                 // Store embedding as BLOB
