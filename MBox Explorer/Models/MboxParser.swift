@@ -136,41 +136,59 @@ class MboxParser: ObservableObject {
     }
 
     private func extractAttachments(from chunk: String) -> [AttachmentInfo] {
+        // Scan MIME headers line by line. The previous single greedy regex (with
+        // dotMatchesLineSeparators) paired the email's top-level
+        // "Content-Type: multipart/…" with a distant filename= and then discarded
+        // it as multipart — so it found nothing. Instead, track the current part's
+        // Content-Type and pair it with the filename in that same part's headers
+        // (handles header folding, where name= wraps onto a continuation line).
         var attachments: [AttachmentInfo] = []
+        var seenFilenames = Set<String>()
+        var currentContentType = "application/octet-stream"
 
-        // Look for Content-Type headers with filename
-        let pattern = #"Content-Type:\s*([^;\n]+)(?:.*name=\"([^\"]+)\"|.*filename=\"([^\"]+)\")"#
-        let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive, .dotMatchesLineSeparators])
+        for raw in chunk.components(separatedBy: "\n") {
+            let line = raw.trimmingCharacters(in: .whitespaces)
+            let lower = line.lowercased()
 
-        let nsString = chunk as NSString
-        let matches = regex?.matches(in: chunk, options: [], range: NSRange(location: 0, length: nsString.length)) ?? []
-
-        for match in matches {
-            if match.numberOfRanges >= 2 {
-                let contentType = nsString.substring(with: match.range(at: 1)).trimmingCharacters(in: .whitespaces)
-
-                // Get filename from either name= or filename=
-                var filename = ""
-                if match.numberOfRanges >= 3, match.range(at: 2).location != NSNotFound {
-                    filename = nsString.substring(with: match.range(at: 2))
-                } else if match.numberOfRanges >= 4, match.range(at: 3).location != NSNotFound {
-                    filename = nsString.substring(with: match.range(at: 3))
-                }
-
-                if !filename.isEmpty && !contentType.contains("multipart") {
-                    // Try to estimate size from base64 content if present
-                    let size = estimateAttachmentSize(contentType: contentType, in: chunk)
-
-                    attachments.append(AttachmentInfo(
-                        filename: filename,
-                        contentType: contentType,
-                        size: size
-                    ))
-                }
+            if lower.hasPrefix("content-type:") {
+                let value = line.dropFirst("content-type:".count).trimmingCharacters(in: .whitespaces)
+                currentContentType = value.components(separatedBy: ";").first?
+                    .trimmingCharacters(in: .whitespaces) ?? value
             }
+
+            // A name= (Content-Type) or filename= (Content-Disposition) parameter
+            // marks a named part; pair it with the part's current Content-Type.
+            guard let filename = Self.filenameParameter(in: line) else { continue }
+            if currentContentType.lowercased().contains("multipart") { continue }
+            if seenFilenames.contains(filename) { continue }
+            seenFilenames.insert(filename)
+
+            attachments.append(AttachmentInfo(
+                filename: filename,
+                contentType: currentContentType,
+                size: estimateAttachmentSize(contentType: currentContentType, in: chunk)
+            ))
         }
 
         return attachments
+    }
+
+    /// Extract a `filename=` or `name=` parameter value (quoted or unquoted) from a
+    /// single MIME header line, if present.
+    private static func filenameParameter(in line: String) -> String? {
+        for key in ["filename=", "name="] {
+            guard let range = line.range(of: key, options: .caseInsensitive) else { continue }
+            var value = String(line[range.upperBound...]).trimmingCharacters(in: .whitespaces)
+            if value.hasPrefix("\"") {
+                value = String(value.dropFirst())
+                if let end = value.firstIndex(of: "\"") { value = String(value[..<end]) }
+            } else {
+                value = value.components(separatedBy: CharacterSet(charactersIn: ";")).first ?? value
+                value = value.trimmingCharacters(in: .whitespaces)
+            }
+            if !value.isEmpty { return value }
+        }
+        return nil
     }
 
     private func estimateAttachmentSize(contentType: String, in chunk: String) -> Int? {
