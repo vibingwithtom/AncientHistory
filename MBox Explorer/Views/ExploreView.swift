@@ -23,9 +23,22 @@ struct ExploreView: View {
     @State private var scenarioInput = ""
     @State private var decisionSeeds: [DecisionPoint] = []
 
+    // What-If operation + its per-mode inputs.
+    @State private var whatIfMode: WhatIfMode = .explore
+    @State private var actualInput = ""
+    @State private var alternativeInput = ""
+    @State private var decisionInput = ""
+    @State private var traceDate = Date()
+
     enum Surface: String, CaseIterable {
         case persona = "Personas"
         case whatIf = "What-If"
+    }
+
+    enum WhatIfMode: String, CaseIterable {
+        case explore = "Explore"      // analyze(scenario:)
+        case compare = "Compare"      // compareOutcomes(actual:alternative:)
+        case trace = "Trace"          // traceImplications(of:on:)
     }
 
     private let accent = Color.purple
@@ -185,15 +198,14 @@ struct ExploreView: View {
 
     private var whatIfSurface: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                TextField("What if…", text: $scenarioInput)
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit(runScenario)
-                Button("Explore", action: runScenario)
-                    .disabled(scenarioInput.trimmingCharacters(in: .whitespaces).isEmpty || hypothetical.isAnalyzing)
+            Picker("", selection: $whatIfMode) {
+                ForEach(WhatIfMode.allCases, id: \.self) { Text($0.rawValue).tag($0) }
             }
+            .pickerStyle(.segmented)
             .padding(.horizontal)
             .padding(.top)
+
+            whatIfInputs
 
             if !decisionSeeds.isEmpty {
                 Text("Starting points from the archive")
@@ -201,9 +213,7 @@ struct ExploreView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack {
                         ForEach(decisionSeeds.prefix(8)) { seed in
-                            Button {
-                                scenarioInput = "What if, instead of \"\(seed.decision)\", they had chosen \(seed.alternatives.first ?? "an alternative")?"
-                            } label: {
+                            Button { applySeed(seed) } label: {
                                 Text(seed.topic).lineLimit(1)
                                     .font(.caption)
                                     .padding(.horizontal, 10).padding(.vertical, 5)
@@ -245,10 +255,88 @@ struct ExploreView: View {
         }
     }
 
+    // MARK: What-If inputs (one form per operation)
+
+    @ViewBuilder
+    private var whatIfInputs: some View {
+        switch whatIfMode {
+        case .explore:
+            HStack {
+                TextField("What if…", text: $scenarioInput)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit(runScenario)
+                Button("Explore", action: runScenario)
+                    .disabled(scenarioInput.trimmingCharacters(in: .whitespaces).isEmpty || hypothetical.isAnalyzing)
+            }
+            .padding(.horizontal)
+
+        case .compare:
+            VStack(spacing: 8) {
+                TextField("Actual decision…", text: $actualInput)
+                    .textFieldStyle(.roundedBorder)
+                HStack {
+                    TextField("Hypothetical alternative…", text: $alternativeInput)
+                        .textFieldStyle(.roundedBorder)
+                        .onSubmit(runCompare)
+                    Button("Compare", action: runCompare)
+                        .disabled(actualInput.trimmingCharacters(in: .whitespaces).isEmpty
+                                  || alternativeInput.trimmingCharacters(in: .whitespaces).isEmpty
+                                  || hypothetical.isAnalyzing)
+                }
+            }
+            .padding(.horizontal)
+
+        case .trace:
+            VStack(spacing: 8) {
+                TextField("Decision to trace…", text: $decisionInput)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit(runTrace)
+                HStack {
+                    DatePicker("On", selection: $traceDate, displayedComponents: .date)
+                        .datePickerStyle(.compact)
+                    Spacer()
+                    Button("Trace", action: runTrace)
+                        .disabled(decisionInput.trimmingCharacters(in: .whitespaces).isEmpty || hypothetical.isAnalyzing)
+                }
+            }
+            .padding(.horizontal)
+        }
+    }
+
+    /// Pre-fill the active mode's inputs from a surfaced decision point.
+    private func applySeed(_ seed: DecisionPoint) {
+        switch whatIfMode {
+        case .explore:
+            scenarioInput = "What if, instead of \"\(seed.decision)\", they had chosen \(seed.alternatives.first ?? "an alternative")?"
+        case .compare:
+            actualInput = seed.decision
+            alternativeInput = seed.alternatives.first ?? ""
+        case .trace:
+            decisionInput = seed.decision
+            traceDate = seed.date
+        }
+    }
+
     private func runScenario() {
         let text = scenarioInput.trimmingCharacters(in: .whitespaces)
         guard !text.isEmpty else { return }
         let emails = viewModel.emails
         Task { await hypothetical.analyze(scenario: text, emails: emails) }
+    }
+
+    private func runCompare() {
+        let actual = actualInput.trimmingCharacters(in: .whitespaces)
+        let alternative = alternativeInput.trimmingCharacters(in: .whitespaces)
+        guard !actual.isEmpty, !alternative.isEmpty else { return }
+        let emails = viewModel.emails
+        Task { await hypothetical.compareOutcomes(actual: actual, alternative: alternative, emails: emails) }
+    }
+
+    private func runTrace() {
+        let decision = decisionInput.trimmingCharacters(in: .whitespaces)
+        guard !decision.isEmpty else { return }
+        let emails = viewModel.emails
+        let date = traceDate
+        Task { await hypothetical.traceImplications(of: decision, on: date, emails: emails) }
     }
 }
