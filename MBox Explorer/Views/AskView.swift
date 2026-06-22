@@ -113,13 +113,20 @@ struct AskView: View {
 
                         // Index status
                         if vectorDB.isIndexed {
-                            HStack(spacing: 4) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.green)
-                                    .font(.caption)
-                                Text("\(vectorDB.totalDocuments) emails indexed")
-                                    .font(.caption)
-                                    .foregroundColor(.green)
+                            HStack(spacing: 8) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.green)
+                                        .font(.caption)
+                                    Text("\(vectorDB.totalDocuments) emails indexed")
+                                        .font(.caption)
+                                        .foregroundColor(.green)
+                                }
+                                // Allow rebuilding after changing the embedding
+                                // model/provider (e.g. switching to Apple On-Device),
+                                // otherwise a stale index can't be regenerated.
+                                indexButton
+                                    .help("Rebuild the index with the current embedding model")
                             }
                         } else if !viewModel.emails.isEmpty {
                             HStack(spacing: 8) {
@@ -208,7 +215,7 @@ struct AskView: View {
                         .scaleEffect(0.7)
                 }
             } else {
-                Text("Index Emails")
+                Text(vectorDB.isIndexed ? "Re-index" : "Index Emails")
             }
         }
         .buttonStyle(.borderedProminent)
