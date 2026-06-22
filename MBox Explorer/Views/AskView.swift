@@ -24,6 +24,7 @@ struct AskView: View {
     @State private var showExportSheet = false
     @State private var showSettingsSheet = false
     @State private var selectedSource: SearchResult?
+    @State private var showingEmailSheet = false
 
     var body: some View {
         HSplitView {
@@ -41,6 +42,24 @@ struct AskView: View {
         }
         .sheet(isPresented: $showSettingsSheet) {
             RAGSettingsSheet(llm: llm, isPresented: $showSettingsSheet)
+        }
+        .sheet(isPresented: $showingEmailSheet) {
+            // The Ask pane has no email-detail column, so show the cited source
+            // email in a sheet (same pattern as AttachmentsView "Show in Email").
+            VStack(spacing: 0) {
+                HStack {
+                    Text(viewModel.selectedEmail?.subject ?? "Email")
+                        .font(.headline)
+                        .lineLimit(1)
+                    Spacer()
+                    Button("Done") { showingEmailSheet = false }
+                        .keyboardShortcut(.defaultAction)
+                }
+                .padding()
+                Divider()
+                EmailDetailView(viewModel: viewModel)
+            }
+            .frame(minWidth: 640, minHeight: 520)
         }
         .onChange(of: viewModel.currentFileURL) { oldValue, newValue in
             // Clear the RAG index when a new MBOX file is loaded to prevent cross-contamination
@@ -455,8 +474,16 @@ struct AskView: View {
 
     private func sourceRow(_ source: SearchResult) -> some View {
         Button(action: {
-            // TODO: Navigate to email in main view
-            selectedSource = source
+            // SearchResult.emailId is `messageId ?? id.uuidString` (see
+            // VectorDatabase), so match on BOTH — matching only id.uuidString
+            // would miss every email that has a Message-ID header.
+            if let email = viewModel.emails.first(where: {
+                $0.messageId == source.emailId || $0.id.uuidString == source.emailId
+            }) {
+                viewModel.selectedEmail = email
+                selectedSource = source
+                showingEmailSheet = true   // Ask pane has no detail column; show in a sheet.
+            }
         }) {
             HStack(spacing: 8) {
                 Image(systemName: "envelope.fill")
