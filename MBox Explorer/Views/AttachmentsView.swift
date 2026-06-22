@@ -15,6 +15,7 @@ struct AttachmentsView: View {
     @State private var sortOrder: AttachmentManager.SortOrder = .ascending
     @State private var selectedAttachments: Set<UUID> = []
     @State private var showingExportDialog = false
+    @State private var showingEmailSheet = false
     // Cache the extracted attachments so each keeps a STABLE id across renders.
     // ExtendedAttachmentInfo gets a fresh UUID on construction, so recomputing the
     // list each render would invalidate row selection (the top "Export" button then
@@ -139,8 +140,12 @@ struct AttachmentsView: View {
                                 }
 
                                 Button {
-                                    // Jump to email containing this attachment
+                                    // Show the containing email. The Attachments
+                                    // layout has no email-detail pane, so present
+                                    // EmailDetailView (which renders selectedEmail)
+                                    // in a sheet.
                                     viewModel.selectedEmail = info.email
+                                    showingEmailSheet = true
                                 } label: {
                                     Label("Show in Email", systemImage: "envelope")
                                 }
@@ -164,6 +169,22 @@ struct AttachmentsView: View {
                 isPresented: $showingExportDialog,
                 onExport: { exportSelectedAttachments() }
             )
+        }
+        .sheet(isPresented: $showingEmailSheet) {
+            VStack(spacing: 0) {
+                HStack {
+                    Text(viewModel.selectedEmail?.subject ?? "Email")
+                        .font(.headline)
+                        .lineLimit(1)
+                    Spacer()
+                    Button("Done") { showingEmailSheet = false }
+                        .keyboardShortcut(.defaultAction)
+                }
+                .padding()
+                Divider()
+                EmailDetailView(viewModel: viewModel)
+            }
+            .frame(minWidth: 640, minHeight: 520)
         }
         .onAppear {
             if cachedAttachments.isEmpty {
