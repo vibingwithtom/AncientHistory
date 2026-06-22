@@ -164,18 +164,17 @@ class ThemeManager: ObservableObject {
 
     func accentColor(for theme: AppTheme) -> Color {
         switch theme {
-        case .system, .light, .dark:
-            return Color.accentColor
         case .highContrast:
-            return Color.yellow
-        case .amoled:
-            return Color.cyan
-        case .solarized:
-            return Color(hex: "#268BD2")
-        case .nord:
-            return Color(hex: "#88C0D0")
+            return Color.yellow   // deliberate high-visibility accent
         case .custom:
             return Color(hex: customColors.accentColor)
+        default:
+            // Use the system accent for all built-in themes. macOS renders the
+            // `.sidebar` List selection with the system accent regardless of our
+            // tint, so a theme-specific accent (e.g. AMOLED's old cyan) clashed
+            // with the blue selection. Aligning to the system accent keeps
+            // buttons and selection consistent; themes differ by background.
+            return Color.accentColor
         }
     }
 }

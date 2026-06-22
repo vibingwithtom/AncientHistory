@@ -67,6 +67,9 @@ struct EmailListView: View {
                     }
             }
             .listStyle(.sidebar)
+            // Let the theme background show through instead of the list's own
+            // material, so the search bar + list read as one consistent column.
+            .scrollContentBackground(.hidden)
             .overlay(alignment: .bottom) {
                 if viewModel.isLoading {
                     LoadingOverlay()
