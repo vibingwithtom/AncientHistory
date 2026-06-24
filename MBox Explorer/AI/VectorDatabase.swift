@@ -12,19 +12,39 @@
 
 import Foundation
 import SQLite3
+import os
 
 /// SQLite transient destructor - tells SQLite to copy string data immediately
 /// This is critical for Swift strings which may be deallocated after the call
 private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
+/// How the most recent Ask query was actually resolved — so testing can confirm
+/// whether the index/embeddings are really being used vs falling back.
+enum SearchMode: String {
+    case semantic = "Semantic (vector)"
+    case keyword = "Keyword (FTS5)"
+    case sample = "Sample (no match)"
+    case directScan = "Direct scan (no index)"
+    case none = "—"
+}
+
 /// Local vector database for semantic search
 class VectorDatabase: ObservableObject {
+    private static let log = Logger(subsystem: "com.raia.AncientHistory", category: "search")
+
+    /// Shared instance so the index state (isIndexed/totalDocuments) survives
+    /// view re-creation — switching sidebar items destroys and rebuilds AskView,
+    /// and a per-view instance would reset to "basic search mode" every time.
+    static let shared = VectorDatabase()
+
     @Published var isIndexed = false
     @Published var indexProgress: Double = 0.0
     @Published var totalDocuments = 0
     @Published var useSemanticSearch = false
     @Published var embeddingProvider: String = "None"
     @Published var embeddingDimension: Int = 0
+    /// Mode that resolved the most recent search() / directSearch() call.
+    @Published var lastSearchMode: SearchMode = .none
 
     private var db: OpaquePointer?
     private let dbPath: String
@@ -95,6 +115,13 @@ class VectorDatabase: ObservableObject {
         CREATE INDEX IF NOT EXISTS idx_from ON email_vectors(from_address);
         CREATE INDEX IF NOT EXISTS idx_date ON email_vectors(date);
 
+        -- Stamps the collection with the embedder identity {embedder_model, dim}
+        -- so queries can reject embeddings produced by a different model/dimension.
+        CREATE TABLE IF NOT EXISTS collection_meta (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        );
+
         CREATE VIRTUAL TABLE IF NOT EXISTS email_fts USING fts5(
             content,
             from_address,
@@ -130,6 +157,50 @@ class VectorDatabase: ObservableObject {
         }
     }
 
+    // MARK: - Embedder identity stamp
+
+    /// Record which embedder produced this collection's vectors. Subsequent queries
+    /// compare against this so embeddings from a different model/dimension are
+    /// rejected instead of silently producing meaningless similarities.
+    func stampEmbeddingIdentity(model: String, dimension: Int) {
+        dbQueue.sync {
+            let sql = "INSERT OR REPLACE INTO collection_meta (key, value) VALUES (?, ?);"
+            for (key, value) in [("embedder_model", model), ("embedder_dim", String(dimension))] {
+                var statement: OpaquePointer?
+                if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                    sqlite3_bind_text(statement, 1, key, -1, SQLITE_TRANSIENT)
+                    sqlite3_bind_text(statement, 2, value, -1, SQLITE_TRANSIENT)
+                    sqlite3_step(statement)
+                }
+                sqlite3_finalize(statement)
+            }
+        }
+    }
+
+    /// The embedder identity stamped at index time, or nil if the collection has
+    /// not been indexed with embeddings yet.
+    func stampedEmbeddingIdentity() -> (model: String, dimension: Int)? {
+        dbQueue.sync {
+            let sql = "SELECT key, value FROM collection_meta WHERE key IN ('embedder_model', 'embedder_dim');"
+            var statement: OpaquePointer?
+            var model: String?
+            var dimension: Int?
+            if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                while sqlite3_step(statement) == SQLITE_ROW {
+                    guard let keyPtr = sqlite3_column_text(statement, 0),
+                          let valuePtr = sqlite3_column_text(statement, 1) else { continue }
+                    let key = String(cString: keyPtr)
+                    let value = String(cString: valuePtr)
+                    if key == "embedder_model" { model = value }
+                    if key == "embedder_dim" { dimension = Int(value) }
+                }
+            }
+            sqlite3_finalize(statement)
+            guard let model, let dimension else { return nil }
+            return (model, dimension)
+        }
+    }
+
     /// Rebuild FTS5 index from email_vectors table
     private func rebuildFTSIndex() {
         dbQueue.sync {
@@ -156,10 +227,36 @@ class VectorDatabase: ObservableObject {
         // Refresh embedding status
         await refreshEmbeddingStatus()
 
+        // Stamp the collection with the embedder identity so later queries can
+        // detect a model/dimension change and refuse to mix embedding spaces.
+        if embeddingManager.useSemanticSearch {
+            let model = await MainActor.run { embeddingManager.currentModelIdentifier }
+            let dimension = await MainActor.run { embeddingManager.currentDimension }
+            stampEmbeddingIdentity(model: model, dimension: dimension)
+        }
+
+        // Reduce each email to its atomic fragment (unique, quote-stripped text
+        // with parent context), then dedup before indexing: drop replies that
+        // added nothing new (pure quotes) and exact-duplicate content.
+        let graph = ThreadGraph.build(from: emails)
+        let owner = FragmentBuilder.inferOwnerAddresses(from: emails)
+        let fragments = FragmentBuilder(ownerAddresses: owner).fragments(from: emails, graph: graph)
+        let fragmentByEmailID = Dictionary(uniqueKeysWithValues: fragments.map { ($0.id, $0) })
+
+        var seenContent = Set<String>()
+        let emailsToIndex = emails.filter { email in
+            guard let fragment = fragmentByEmailID[email.id.uuidString] else { return true }
+            let key = fragment.textContent.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            if key.isEmpty { return false }            // reply contributed no new text
+            if seenContent.contains(key) { return false }  // duplicate content
+            seenContent.insert(key)
+            return true
+        }
+
         // Process in batches for efficiency
         let batchSize = 20
-        let batches = stride(from: 0, to: emails.count, by: batchSize).map {
-            Array(emails[$0..<min($0 + batchSize, emails.count)])
+        let batches = stride(from: 0, to: emailsToIndex.count, by: batchSize).map {
+            Array(emailsToIndex[$0..<min($0 + batchSize, emailsToIndex.count)])
         }
 
         var processedCount = 0
@@ -169,13 +266,20 @@ class VectorDatabase: ObservableObject {
             let emailDataForIndexing: [(email: Email, bodyLength: Int, metadataJSON: String)] = batch.map { email in
                 // Safely compute body length and metadata JSON upfront
                 let bodyLength = email.body.count
-                let metadataDict: [String: Any] = [
+                let fragment = fragmentByEmailID[email.id.uuidString]
+                var metadataDict: [String: Any] = [
                     "from": email.from,
                     "subject": email.subject,
                     "date": email.date,
                     "message_id": email.messageId ?? "",
                     "body_length": bodyLength
                 ]
+                if let fragment {
+                    metadataDict["thread_id"] = fragment.threadID
+                    metadataDict["direction"] = fragment.direction.rawValue
+                    metadataDict["speaker_id"] = fragment.speakerID
+                    if let parent = fragment.parentFragmentID { metadataDict["parent_fragment_id"] = parent }
+                }
                 let metadataJSON: String
                 if let jsonData = try? JSONSerialization.data(withJSONObject: metadataDict, options: []),
                    let jsonString = String(data: jsonData, encoding: .utf8) {
@@ -190,10 +294,14 @@ class VectorDatabase: ObservableObject {
             var embeddings: [[Float]] = []
 
             if embeddingManager.useSemanticSearch {
-                let texts = batch.map { email in
-                    // Combine subject + first 500 chars of body for embedding
-                    let bodyPrefix = String(email.body.prefix(500))
-                    return "\(email.subject) \(bodyPrefix)"
+                let texts = batch.map { email -> String in
+                    // Embed the atomic fragment: unique text_content + parent_snippet
+                    // (so a bare reply still retrieves with the context it answers),
+                    // prefixed with the subject. Fall back to the raw body if no
+                    // fragment was produced.
+                    let fragmentText = fragmentByEmailID[email.id.uuidString]?.embeddingText
+                        ?? String(email.body.prefix(500))
+                    return "\(email.subject) \(fragmentText)"
                 }
 
                 do {
@@ -210,7 +318,7 @@ class VectorDatabase: ObservableObject {
                 indexEmailSync(emailData.email, embedding: embedding, metadataJSON: emailData.metadataJSON)
 
                 processedCount += 1
-                let progress = Double(processedCount) / Double(emails.count)
+                let progress = Double(processedCount) / Double(max(emailsToIndex.count, 1))
                 await MainActor.run {
                     self.indexProgress = progress
                     progressCallback(progress)
@@ -223,7 +331,7 @@ class VectorDatabase: ObservableObject {
 
         await MainActor.run {
             self.isIndexed = true
-            self.totalDocuments = emails.count
+            self.totalDocuments = emailsToIndex.count
         }
     }
 
@@ -241,7 +349,12 @@ class VectorDatabase: ObservableObject {
                 // Swift strings are temporary and may be deallocated after this call
                 // SQLITE_TRANSIENT tells SQLite to make its own copy immediately
                 sqlite3_bind_text(statement, 1, email.id.uuidString, -1, SQLITE_TRANSIENT)
-                sqlite3_bind_text(statement, 2, email.messageId, -1, SQLITE_TRANSIENT)
+                // email_id must never be NULL: every read path (semanticSearch,
+                // keywordSearch, getEmailSample) does `guard let` on this column and
+                // skips the row when it's null. Emails without a Message-ID header
+                // (e.g. older archives) would otherwise be indexed but invisible to
+                // all retrieval. Fall back to the always-present stable UUID.
+                sqlite3_bind_text(statement, 2, email.messageId ?? email.id.uuidString, -1, SQLITE_TRANSIENT)
                 sqlite3_bind_text(statement, 3, email.body, -1, SQLITE_TRANSIENT)
 
                 // Store embedding as BLOB
@@ -277,7 +390,7 @@ class VectorDatabase: ObservableObject {
             do {
                 let results = try await semanticSearch(query: query)
                 if !results.isEmpty {
-                    return results
+                    return await recordMode(.semantic, count: results.count, results)
                 }
             } catch {
                 print("Semantic search failed (\(embeddingManager.selectedProvider.rawValue)), falling back to FTS: \(error.localizedDescription)")
@@ -289,14 +402,23 @@ class VectorDatabase: ObservableObject {
         if !keywords.isEmpty {
             let ftsResults = await keywordSearch(query: keywords)
             if !ftsResults.isEmpty {
-                return ftsResults
+                return await recordMode(.keyword, count: ftsResults.count, ftsResults)
             }
         }
 
         // CREATIVE FALLBACK: If no search results, return a diverse sample of emails
         // This ensures the LLM always has context to work with for summary/overview questions
-        print("No search matches found, returning email sample for context")
-        return await getEmailSample(limit: 20)
+        let sample = await getEmailSample(limit: 20)
+        return await recordMode(.sample, count: sample.count, sample)
+    }
+
+    /// Publish + log which path resolved a search, so testing can confirm the
+    /// index/embeddings are actually being used. Visible in the unified log via
+    /// `log stream --predicate 'subsystem == "com.raia.AncientHistory"'`.
+    private func recordMode(_ mode: SearchMode, count: Int, _ results: [SearchResult]) async -> [SearchResult] {
+        Self.log.notice("Ask query resolved via \(mode.rawValue, privacy: .public) — \(count) result(s)")
+        await MainActor.run { self.lastSearchMode = mode }
+        return results
     }
 
     /// Extract meaningful keywords from a natural language query
@@ -370,6 +492,18 @@ class VectorDatabase: ObservableObject {
 
     /// Semantic search using vector embeddings
     private func semanticSearch(query: String) async throws -> [SearchResult] {
+        // Reject the query if the active embedder differs from the one that
+        // produced the stored vectors — comparing across embedding spaces (or
+        // mismatched dimensions) yields meaningless results. search() then falls
+        // back to keyword search.
+        if let stamp = stampedEmbeddingIdentity() {
+            let currentModel = await MainActor.run { embeddingManager.currentModelIdentifier }
+            let currentDim = await MainActor.run { embeddingManager.currentDimension }
+            if stamp.model != currentModel || stamp.dimension != currentDim {
+                throw EmbeddingError.dimensionMismatch(expected: stamp.dimension, got: currentDim)
+            }
+        }
+
         // Generate query embedding using active provider
         let queryEmbedding = try await embeddingManager.generateEmbedding(for: query)
 
@@ -549,6 +683,9 @@ class VectorDatabase: ObservableObject {
     /// Direct search through emails without requiring indexing
     /// This is a fallback when emails haven't been indexed yet
     func directSearch(query: String, emails: [Email], limit: Int = 20) -> [SearchResult] {
+        // Called from AskView only inside MainActor.run, so the @Published write is safe.
+        Self.log.notice("Ask query resolved via \(SearchMode.directScan.rawValue, privacy: .public) — no index built")
+        lastSearchMode = .directScan
         let queryTerms = query.lowercased().split(separator: " ").map { String($0) }
 
         var scoredResults: [(email: Email, score: Int)] = []
@@ -582,6 +719,24 @@ class VectorDatabase: ObservableObject {
         let topResults = scoredResults
             .sorted { $0.score > $1.score }
             .prefix(limit)
+
+        // If nothing scored, return a sample of emails so summary/overview questions
+        // always have content — mirrors the getEmailSample fallback in the indexed path.
+        if topResults.isEmpty {
+            print("No direct search matches found, returning email sample for context")
+            return Array(emails.suffix(limit)).map { email in
+                let snippet = String(email.body.prefix(300))
+                return SearchResult(
+                    emailId: email.messageId ?? email.id.uuidString,
+                    content: email.body,
+                    from: email.from,
+                    subject: email.subject,
+                    date: email.date,
+                    snippet: snippet,
+                    score: 0.5
+                )
+            }
+        }
 
         return topResults.map { item in
             let snippet = String(item.email.body.prefix(300))

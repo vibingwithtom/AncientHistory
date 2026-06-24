@@ -15,6 +15,7 @@ struct TagsCollectionsView: View {
     @State private var selectedTab = 0
     @State private var showingNewTag = false
     @State private var showingNewCollection = false
+    @State private var showingEmailSheet = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -42,6 +43,24 @@ struct TagsCollectionsView: View {
             }
         }
         .background(Color(NSColor.controlBackgroundColor))
+        .sheet(isPresented: $showingEmailSheet) {
+            // No email-detail pane in this view, so present the selected email
+            // (e.g. a tapped favorite) in a sheet.
+            VStack(spacing: 0) {
+                HStack {
+                    Text(viewModel.selectedEmail?.subject ?? "Email")
+                        .font(.headline)
+                        .lineLimit(1)
+                    Spacer()
+                    Button("Done") { showingEmailSheet = false }
+                        .keyboardShortcut(.defaultAction)
+                }
+                .padding()
+                Divider()
+                EmailDetailView(viewModel: viewModel)
+            }
+            .frame(minWidth: 640, minHeight: 520)
+        }
     }
 
     // MARK: - Tags View
@@ -173,6 +192,7 @@ struct TagsCollectionsView: View {
                         FavoriteEmailRow(email: email)
                             .onTapGesture {
                                 viewModel.selectedEmail = email
+                                showingEmailSheet = true
                             }
                             .contextMenu {
                                 Button("Remove from Favorites") {

@@ -10,6 +10,7 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var viewModel = MboxViewModel()
     @StateObject private var alertManager = AlertManager()
+    @ObservedObject private var themeManager = ThemeManager.shared
     @EnvironmentObject var recentFilesViewModel: RecentFilesViewModel
     @State private var selectedView: SidebarItem = .allEmails
     @State private var showingFilePicker = false
@@ -19,7 +20,11 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            GlassmorphicBackground()
+            // Theme-driven base. Replaces the fixed cyan/purple/pink animated
+            // GlassmorphicBackground (which ignored the selected theme) so the
+            // chosen theme — including true-black AMOLED — actually shows.
+            themeManager.backgroundColor(for: themeManager.currentTheme)
+                .ignoresSafeArea()
 
             mainView
                 .modifier(SheetsModifier(viewModel: viewModel, alertManager: alertManager, showingExportPicker: $showingExportPicker))
@@ -41,11 +46,18 @@ struct ContentView: View {
                 }
                 .onAppear {
                     viewModel.alertManager = alertManager
+                    // Re-apply once the window exists so window-chrome theming
+                    // takes effect on first launch (init runs before any window).
+                    themeManager.applyTheme()
                 }
                 .fileDropTarget { url in
                     loadMboxFile(url)
                 }
         }
+        // Drive the whole app's accent/selection highlight from the theme, so
+        // picking a theme (Nord, Solarized, Custom…) actually recolors controls
+        // and selection — not just the settings preview swatch.
+        .tint(themeManager.accentColor(for: themeManager.currentTheme))
     }
 
     private var mainView: some View {
@@ -69,6 +81,9 @@ struct ContentView: View {
                     if selectedView == .ask {
                         AskView(viewModel: viewModel)
                             .navigationSplitViewColumnWidth(min: 600, ideal: 900, max: 1400)
+                    } else if selectedView == .explore {
+                        ExploreView(viewModel: viewModel)
+                            .navigationSplitViewColumnWidth(min: 600, ideal: 900, max: 1400)
                     } else if selectedView == .network {
                         NetworkVisualizationView(emails: viewModel.emails)
                             .navigationSplitViewColumnWidth(min: 600, ideal: 900, max: 1400)
@@ -89,7 +104,7 @@ struct ContentView: View {
                         .navigationSplitViewColumnWidth(min: 300, ideal: 400, max: 600)
                     }
                 } detail: {
-                    if selectedView == .ask || selectedView == .network || selectedView == .attachments || selectedView == .analytics || selectedView == .operations {
+                    if selectedView == .ask || selectedView == .explore || selectedView == .network || selectedView == .attachments || selectedView == .analytics || selectedView == .operations {
                         // No detail view for these views
                         let title = selectedView == .attachments ? "Select an attachment" :
                                     selectedView == .analytics ? "Analytics Dashboard" : "MBOX Operations"
@@ -146,7 +161,7 @@ struct ContentView: View {
     private func showExportDirectoryPicker() {
         let panel = NSSavePanel()
         panel.canCreateDirectories = true
-        panel.nameFieldStringValue = "MBox Export"
+        panel.nameFieldStringValue = "Ancient History Export"
         panel.message = "Choose export directory"
         panel.canCreateDirectories = true
 
@@ -183,6 +198,7 @@ struct ContentView: View {
 enum SidebarItem: String, CaseIterable {
     case allEmails = "All Emails"
     case ask = "Ask AI"
+    case explore = "Explore"
     case network = "Network"
     case attachments = "Attachments"
     case analytics = "Analytics"
@@ -233,6 +249,9 @@ struct SheetsModifier: ViewModifier {
             }
             .sheet(isPresented: $viewModel.showingThemeSettings) {
                 ThemeSettingsView(isPresented: $viewModel.showingThemeSettings)
+            }
+            .sheet(isPresented: $viewModel.showingAbout) {
+                AboutView(isPresented: $viewModel.showingAbout)
             }
             // Note: Add DuplicatesView.swift to Xcode project to enable this feature
             // .sheet(isPresented: $viewModel.showingDuplicates) {
@@ -316,6 +335,9 @@ private struct ViewNotifications: ViewModifier {
             .onReceive(NotificationCenter.default.publisher(for: .showThemeSettings)) { _ in
                 viewModel.showingThemeSettings = true
             }
+            .onReceive(NotificationCenter.default.publisher(for: .showAbout)) { _ in
+                viewModel.showingAbout = true
+            }
             .onReceive(NotificationCenter.default.publisher(for: .showAISettings)) { _ in
                 openAISettingsWindow()
             }
@@ -367,6 +389,98 @@ private struct ActionNotifications: ViewModifier {
                 viewModel.deleteSelectedEmail()
             }
     }
+}
+
+// MARK: - About / Acknowledgements
+
+/// About panel that also satisfies the MIT attribution requirement for binary
+/// distribution: the original copyright + permission notice must travel with
+/// every copy of the software, including the shipped app. The license text is
+/// embedded (not read from a bundled file) so it can never be missing at runtime.
+struct AboutView: View {
+    @Binding var isPresented: Bool
+
+    private var appVersion: String {
+        let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+        let b = Bundle.main.infoDictionary?["CFBundleVersion"] as? String
+        return b.map { "\(v) (\($0))" } ?? v
+    }
+
+    private let upstreamURL = "https://github.com/kochj23/MBox-Explorer"
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("About Ancient History").font(.headline)
+                Spacer()
+                Button("Done") { isPresented = false }
+                    .keyboardShortcut(.defaultAction)
+            }
+            .padding()
+            Divider()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Ancient History").font(.title2.bold())
+                        Text("Version \(appVersion)")
+                            .font(.caption).foregroundColor(.secondary)
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Credits").font(.subheadline.bold())
+                        Text("A fork of **MBox Explorer** by Jordan Koch, used under the MIT License.")
+                        Link(upstreamURL, destination: URL(string: upstreamURL)!)
+                            .font(.callout)
+                    }
+
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("License").font(.subheadline.bold())
+                        Text(Self.licenseText)
+                            .font(.system(.caption, design: .monospaced))
+                            .textSelection(.enabled)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
+            }
+        }
+        .frame(minWidth: 560, minHeight: 520)
+    }
+
+    /// MIT License — keep in sync with the repository LICENSE file. Must include
+    /// the original copyright notice and the permission notice verbatim.
+    static let licenseText = """
+    MIT License
+
+    Copyright (c) 2025 Jordan Koch (MBox Explorer, the original work)
+    Copyright (c) 2026 Ancient History contributors (modifications)
+
+    Ancient History is a fork of MBox Explorer
+    (https://github.com/kochj23/MBox-Explorer), used and redistributed under the
+    terms of the MIT License below.
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+    """
 }
 
 // MARK: - Preview

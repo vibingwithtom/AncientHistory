@@ -1,6 +1,10 @@
 MIT License
 
-Copyright (c) 2025 Jordan Koch
+Copyright (c) 2025 Jordan Koch (MBox Explorer, the original work)
+Copyright (c) 2026 Ancient History contributors (modifications)
+
+Ancient History is a fork of MBox Explorer (https://github.com/kochj23/MBox-Explorer),
+used and redistributed under the terms of the MIT License below.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

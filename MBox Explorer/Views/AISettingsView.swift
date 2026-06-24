@@ -15,6 +15,8 @@ struct AISettingsView: View {
     @StateObject private var embeddingManager = EmbeddingManager.shared
     @StateObject private var aiBackend = AIBackendManager.shared
 
+    @Environment(\.dismiss) private var dismiss
+
     @State private var serverURL: String = ""
     @State private var selectedLLMModel: String = ""
     @State private var selectedEmbeddingModel: String = ""
@@ -133,12 +135,81 @@ struct AISettingsView: View {
                                     .font(.caption)
                             }
                             HStack {
-                                Image(systemName: aiBackend.isMLXAvailable ? "checkmark.circle.fill" : "xmark.circle")
-                                    .foregroundColor(aiBackend.isMLXAvailable ? .green : .gray)
-                                Text("MLX Toolkit")
+                                Image(systemName: aiBackend.isEndpointAvailable ? "checkmark.circle.fill" : "xmark.circle")
+                                    .foregroundColor(aiBackend.isEndpointAvailable ? .green : .gray)
+                                Text("OpenAI-Compatible Endpoint")
                                     .font(.caption)
                             }
                         }
+                    }
+                    .padding(.vertical, 8)
+                }
+
+                // MARK: - OpenAI-Compatible Endpoint Configuration
+                GroupBox(label: Label("OpenAI-Compatible Endpoint", systemImage: "server.rack")) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Any OpenAI-compatible server (oMLX, vLLM, LM Studio, …). Used when the \"OpenAI-Compatible Endpoint\" backend is selected (macOS 27).")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        HStack {
+                            TextField("Server URL (e.g. http://localhost:8000)", text: $aiBackend.endpointURL)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .onChange(of: aiBackend.endpointURL) { _ in
+                                    aiBackend.saveSettings()
+                                    Task { await aiBackend.checkEndpoint() }
+                                }
+                            Button("Fetch Models") {
+                                Task { await aiBackend.fetchEndpointModels() }
+                            }
+                        }
+
+                        SecureField("API key (Bearer token, if the server requires one)", text: $aiBackend.endpointAPIKey)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .onChange(of: aiBackend.endpointAPIKey) { _ in aiBackend.saveSettings() }
+
+                        // Chat model — picker when the server advertised models, else free text.
+                        if aiBackend.availableEndpointModels.isEmpty {
+                            TextField("Chat model (e.g. gemma-3-12b)", text: $aiBackend.endpointModel)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .onChange(of: aiBackend.endpointModel) { _ in aiBackend.saveSettings() }
+                        } else {
+                            Picker("Chat model", selection: $aiBackend.endpointModel) {
+                                ForEach(aiBackend.availableEndpointModels, id: \.self) { Text($0).tag($0) }
+                            }
+                            .onChange(of: aiBackend.endpointModel) { _ in aiBackend.saveSettings() }
+                        }
+
+                        // Embedding model — separate from chat (semantic search).
+                        if aiBackend.availableEndpointModels.isEmpty {
+                            TextField("Embedding model (e.g. bge-m3)", text: $aiBackend.endpointEmbeddingModel)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .onChange(of: aiBackend.endpointEmbeddingModel) { _ in aiBackend.saveSettings() }
+                        } else {
+                            Picker("Embedding model", selection: $aiBackend.endpointEmbeddingModel) {
+                                ForEach(aiBackend.availableEndpointModels, id: \.self) { Text($0).tag($0) }
+                            }
+                            .onChange(of: aiBackend.endpointEmbeddingModel) { _ in aiBackend.saveSettings() }
+                        }
+
+                        HStack {
+                            Circle()
+                                .fill(aiBackend.isEndpointAvailable ? Color.green : Color.gray)
+                                .frame(width: 8, height: 8)
+                            Text(aiBackend.isEndpointAvailable ? "Reachable" : "Not detected")
+                                .font(.caption)
+                                .foregroundColor(aiBackend.isEndpointAvailable ? .green : .gray)
+                            if !aiBackend.availableEndpointModels.isEmpty {
+                                Text("· \(aiBackend.availableEndpointModels.count) models")
+                                    .font(.caption).foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Button("Test") { Task { await aiBackend.checkEndpoint() } }
+                        }
+
+                        Text("Chat runs via Foundation Models (macOS 27). To use this server for semantic search too, set the Embedding Provider above to \"OpenAI-Compatible\".")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
                     }
                     .padding(.vertical, 8)
                 }
@@ -415,9 +486,21 @@ struct AISettingsView: View {
             }
             .padding()
         }
+        .safeAreaInset(edge: .bottom) {
+            HStack {
+                Spacer()
+                Button("Done") { dismiss() }
+                    .keyboardShortcut(.defaultAction)
+            }
+            .padding()
+            .background(.bar)
+        }
         .frame(minWidth: 550, minHeight: 600)
         .onAppear {
             loadSettings()
+            // Populate the full Backend Status list only while settings is open;
+            // normal app use checks just the selected backend.
+            Task { await aiBackend.refreshAllBackends() }
         }
     }
 

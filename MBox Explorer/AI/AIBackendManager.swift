@@ -20,12 +20,15 @@
 import Foundation
 import SwiftUI
 import Combine
+import FoundationModels
 
 // MARK: - AI Backend Type
 
 enum AIBackend: String, Codable, CaseIterable {
     case ollama = "Ollama"
-    case mlx = "MLX Toolkit"
+    case openAICompatible = "OpenAI-Compatible Endpoint"
+    case onDevice = "On-Device (Apple)"
+    case privateCloud = "Private Cloud Compute"
     case tinyLLM = "TinyLLM"
     case tinyChat = "TinyChat"
     case openWebUI = "OpenWebUI"
@@ -34,7 +37,9 @@ enum AIBackend: String, Codable, CaseIterable {
     var icon: String {
         switch self {
         case .ollama: return "network"
-        case .mlx: return "cpu"
+        case .openAICompatible: return "server.rack"
+        case .onDevice: return "cpu"
+        case .privateCloud: return "lock.icloud"
         case .tinyLLM: return "cube"
         case .tinyChat: return "bubble.left.and.bubble.right.fill"
         case .openWebUI: return "globe"
@@ -46,8 +51,12 @@ enum AIBackend: String, Codable, CaseIterable {
         switch self {
         case .ollama:
             return "HTTP-based API (Ollama running on localhost:11434)"
-        case .mlx:
-            return "Python MLX Toolkit (runs models locally via Python)"
+        case .openAICompatible:
+            return "Local OpenAI-compatible endpoint server via Foundation Models (requires macOS 27)"
+        case .onDevice:
+            return "Apple on-device model — fully private, no network (macOS 27)"
+        case .privateCloud:
+            return "Apple Private Cloud Compute — cloud inference with privacy guarantees (macOS 27)"
         case .tinyLLM:
             return "TinyLLM lightweight server (localhost:8000)"
         case .tinyChat:
@@ -84,7 +93,9 @@ class AIBackendManager: ObservableObject {
     @Published var selectedBackend: AIBackend = .auto
     @Published var activeBackend: AIBackend? = nil
     @Published var isOllamaAvailable = false
-    @Published var isMLXAvailable = false
+    @Published var isEndpointAvailable = false
+    @Published var isOnDeviceAvailable = false
+    @Published var isPrivateCloudAvailable = false
     @Published var isTinyLLMAvailable = false
     @Published var isTinyChatAvailable = false
     @Published var isOpenWebUIAvailable = false
@@ -95,9 +106,16 @@ class AIBackendManager: ObservableObject {
     @Published var ollamaModels: [String] = []
     @Published var selectedOllamaModel: String = "mistral:latest"
 
-    // MLX-specific
-    @Published var pythonPath: String = "/opt/homebrew/bin/python3"
-    @Published var mlxScriptPath: String = ""
+    // OpenAI-compatible endpoint-specific (local model server)
+    @Published var endpointURL: String = "http://localhost:8000"
+    @Published var endpointModel: String = "gemma-3-12b"          // chat / generation
+    @Published var endpointEmbeddingModel: String = "bge-m3"      // embeddings
+    @Published var endpointAPIKey: String = ""                    // optional Bearer token
+    /// Models advertised by the endpoint's /v1/models, for the settings pickers.
+    @Published var availableEndpointModels: [String] = []
+
+    /// UserDefaults key the engine + embedding provider read for the Bearer token.
+    static let endpointAPIKeyDefaultsKey = "AIBackendManager_EndpointAPIKey"
 
     // TinyLLM-specific (Jason Cox)
     @Published var tinyLLMServerURL: String = "http://localhost:8000"
@@ -121,8 +139,10 @@ class AIBackendManager: ObservableObject {
     private enum Keys {
         static let selectedBackend = "AIBackendManager_SelectedBackend"
         static let ollamaModel = "AIBackendManager_OllamaModel"
-        static let pythonPath = "AIBackendManager_PythonPath"
-        static let mlxScriptPath = "AIBackendManager_MLXScriptPath"
+        static let endpointURL = "AIBackendManager_EndpointURL"
+        static let endpointModel = "AIBackendManager_EndpointModel"
+        static let endpointEmbeddingModel = "AIBackendManager_EndpointEmbeddingModel"
+        static let endpointAPIKey = AIBackendManager.endpointAPIKeyDefaultsKey
         static let tinyLLMServerURL = "AIBackendManager_TinyLLMServerURL"
         static let tinyChatServerURL = "AIBackendManager_TinyChatServerURL"
         static let openWebUIServerURL = "AIBackendManager_OpenWebUIServerURL"
@@ -149,8 +169,10 @@ class AIBackendManager: ObservableObject {
         }
 
         selectedOllamaModel = userDefaults.string(forKey: Keys.ollamaModel) ?? "mistral:latest"
-        pythonPath = userDefaults.string(forKey: Keys.pythonPath) ?? "/opt/homebrew/bin/python3"
-        mlxScriptPath = userDefaults.string(forKey: Keys.mlxScriptPath) ?? ""
+        endpointURL = userDefaults.string(forKey: Keys.endpointURL) ?? "http://localhost:8000"
+        endpointModel = userDefaults.string(forKey: Keys.endpointModel) ?? "gemma-3-12b"
+        endpointEmbeddingModel = userDefaults.string(forKey: Keys.endpointEmbeddingModel) ?? "bge-m3"
+        endpointAPIKey = userDefaults.string(forKey: Keys.endpointAPIKey) ?? ""
         tinyLLMServerURL = userDefaults.string(forKey: Keys.tinyLLMServerURL) ?? "http://localhost:8000"
         tinyChatServerURL = userDefaults.string(forKey: Keys.tinyChatServerURL) ?? "http://localhost:8000"
         openWebUIServerURL = userDefaults.string(forKey: Keys.openWebUIServerURL) ?? "http://localhost:8080"
@@ -164,8 +186,10 @@ class AIBackendManager: ObservableObject {
     func saveSettings() {
         userDefaults.set(selectedBackend.rawValue, forKey: Keys.selectedBackend)
         userDefaults.set(selectedOllamaModel, forKey: Keys.ollamaModel)
-        userDefaults.set(pythonPath, forKey: Keys.pythonPath)
-        userDefaults.set(mlxScriptPath, forKey: Keys.mlxScriptPath)
+        userDefaults.set(endpointURL, forKey: Keys.endpointURL)
+        userDefaults.set(endpointModel, forKey: Keys.endpointModel)
+        userDefaults.set(endpointEmbeddingModel, forKey: Keys.endpointEmbeddingModel)
+        userDefaults.set(endpointAPIKey, forKey: Keys.endpointAPIKey)
         userDefaults.set(tinyLLMServerURL, forKey: Keys.tinyLLMServerURL)
         userDefaults.set(tinyChatServerURL, forKey: Keys.tinyChatServerURL)
         userDefaults.set(openWebUIServerURL, forKey: Keys.openWebUIServerURL)
@@ -174,22 +198,134 @@ class AIBackendManager: ObservableObject {
         userDefaults.set(creativeTemperature, forKey: Keys.creativeTemperature)
     }
 
+    // MARK: - Context budgeting
+
+    /// Characters of retrieved context to include in a RAG prompt, budgeted to the
+    /// active model's window. The Apple on-device model has a small (~4k-token)
+    /// window, so it gets far less than a server model — otherwise stuffing many
+    /// retrieved emails overflows it ("context size exceeded").
+    var retrievedContextCharBudget: Int {
+        switch activeBackend ?? selectedBackend {
+        case .onDevice: return 8_000     // ~2k tokens, leaves room for prompt + answer
+        case .privateCloud: return 16_000
+        default: return 24_000           // servers/endpoint typically allow larger windows
+        }
+    }
+
+    /// Response token budget for the active model (kept small for on-device so the
+    /// reserved answer space doesn't eat the input window).
+    var responseTokenBudget: Int {
+        switch activeBackend ?? selectedBackend {
+        case .onDevice: return 700
+        case .privateCloud: return 1_200
+        default: return 2_048
+        }
+    }
+
     // MARK: - Backend Availability Checking
 
-    func checkBackendAvailability() async {
+    /// Apple model availability is a local capability check — no network.
+    private func refreshAppleAvailability() {
+        if #available(macOS 27.0, *) {
+            isOnDeviceAvailable = SystemLanguageModel.default.isAvailable
+            isPrivateCloudAvailable = PrivateCloudComputeLanguageModel().isAvailable
+        } else {
+            isOnDeviceAvailable = false
+            isPrivateCloudAvailable = false
+        }
+    }
+
+    /// Probe every HTTP/server backend. Only used to populate the settings status
+    /// list (see refreshAllBackends); normal operation avoids these network calls.
+    private func refreshServerBackends() async {
         async let ollamaCheck = checkOllamaAvailability()
-        async let mlxCheck = checkMLXAvailability()
+        async let endpointCheck = checkEndpointAvailability()
         async let tinyLLMCheck = checkTinyLLMAvailability()
         async let tinyChatCheck = checkTinyChatAvailability()
         async let openWebUICheck = checkOpenWebUIAvailability()
-
-        let (ollama, mlx, tinyLLM, tinyChat, openWebUI) = await (ollamaCheck, mlxCheck, tinyLLMCheck, tinyChatCheck, openWebUICheck)
-
+        let (ollama, endpoint, tinyLLM, tinyChat, openWebUI) =
+            await (ollamaCheck, endpointCheck, tinyLLMCheck, tinyChatCheck, openWebUICheck)
         isOllamaAvailable = ollama
-        isMLXAvailable = mlx
+        isEndpointAvailable = endpoint
         isTinyLLMAvailable = tinyLLM
         isTinyChatAvailable = tinyChat
         isOpenWebUIAvailable = openWebUI
+    }
+
+    /// Full scan of every backend, for the settings "Backend Status" list.
+    func refreshAllBackends() async {
+        refreshAppleAvailability()
+        await refreshServerBackends()
+        determineActiveBackend()
+    }
+
+    /// Probe just the OpenAI-compatible endpoint (settings "Test" button / URL edit).
+    func checkEndpoint() async {
+        isEndpointAvailable = await checkEndpointAvailability()
+        determineActiveBackend()
+    }
+
+    /// Fetch the models the endpoint advertises (GET {url}/v1/models) so the
+    /// settings UI can offer chat/embedding model pickers. Also confirms the
+    /// server is reachable. Returns the model ids (also stored in
+    /// availableEndpointModels).
+    @discardableResult
+    func fetchEndpointModels() async -> [String] {
+        guard let url = URL(string: "\(endpointURL)/v1/models") else { return [] }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 5
+        request.applyEndpointAuth()
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard (response as? HTTPURLResponse)?.statusCode == 200 else {
+                isEndpointAvailable = false
+                return []
+            }
+            // OpenAI shape: { "data": [ { "id": "..." }, ... ] }
+            let ids: [String]
+            if let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let items = root["data"] as? [[String: Any]] {
+                ids = items.compactMap { $0["id"] as? String }.sorted()
+            } else {
+                ids = []
+            }
+            availableEndpointModels = ids
+            isEndpointAvailable = true
+            determineActiveBackend()
+            return ids
+        } catch {
+            isEndpointAvailable = false
+            return []
+        }
+    }
+
+    /// Routine availability check used on launch and when the selection changes.
+    /// Only probes the backend the current selection actually needs — so the
+    /// Apple on-device path makes no network calls to LLM servers that aren't
+    /// running. (Use refreshAllBackends() to scan everything for the settings UI.)
+    func checkBackendAvailability() async {
+        refreshAppleAvailability()   // local, no network
+
+        switch selectedBackend {
+        case .onDevice, .privateCloud:
+            break   // Apple availability already set above; no servers to probe
+        case .ollama:
+            isOllamaAvailable = await checkOllamaAvailability()
+        case .openAICompatible:
+            isEndpointAvailable = await checkEndpointAvailability()
+        case .tinyLLM:
+            isTinyLLMAvailable = await checkTinyLLMAvailability()
+        case .tinyChat:
+            isTinyChatAvailable = await checkTinyChatAvailability()
+        case .openWebUI:
+            isOpenWebUIAvailable = await checkOpenWebUIAvailability()
+        case .auto:
+            // Auto prefers the on-device model; only fall back to probing servers
+            // when no Apple model is available.
+            if !isOnDeviceAvailable && !isPrivateCloudAvailable {
+                await refreshServerBackends()
+            }
+        }
 
         // Determine active backend
         determineActiveBackend()
@@ -199,8 +335,12 @@ class AIBackendManager: ObservableObject {
         switch selectedBackend {
         case .ollama:
             activeBackend = isOllamaAvailable ? .ollama : nil
-        case .mlx:
-            activeBackend = isMLXAvailable ? .mlx : nil
+        case .openAICompatible:
+            activeBackend = isEndpointAvailable ? .openAICompatible : nil
+        case .onDevice:
+            activeBackend = isOnDeviceAvailable ? .onDevice : nil
+        case .privateCloud:
+            activeBackend = isPrivateCloudAvailable ? .privateCloud : nil
         case .tinyLLM:
             activeBackend = isTinyLLMAvailable ? .tinyLLM : nil
         case .tinyChat:
@@ -208,8 +348,13 @@ class AIBackendManager: ObservableObject {
         case .openWebUI:
             activeBackend = isOpenWebUIAvailable ? .openWebUI : nil
         case .auto:
-            // Prefer Ollama, fallback to TinyChat/TinyLLM/OpenWebUI, then MLX
-            if isOllamaAvailable {
+            // Prefer Apple's on-device model (private, no server, always present
+            // on macOS 27 with assets installed), then a running local/HTTP
+            // backend, then the OpenAI-compatible endpoint, then Private Cloud
+            // Compute.
+            if isOnDeviceAvailable {
+                activeBackend = .onDevice
+            } else if isOllamaAvailable {
                 activeBackend = .ollama
             } else if isTinyChatAvailable {
                 activeBackend = .tinyChat
@@ -217,8 +362,10 @@ class AIBackendManager: ObservableObject {
                 activeBackend = .tinyLLM
             } else if isOpenWebUIAvailable {
                 activeBackend = .openWebUI
-            } else if isMLXAvailable {
-                activeBackend = .mlx
+            } else if isEndpointAvailable {
+                activeBackend = .openAICompatible
+            } else if isPrivateCloudAvailable {
+                activeBackend = .privateCloud
             } else {
                 activeBackend = nil
             }
@@ -308,20 +455,20 @@ class AIBackendManager: ObservableObject {
         }
     }
 
-    private func checkMLXAvailability() async -> Bool {
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: pythonPath)
-        // Check for both mlx.core and mlx_lm (needed for text generation)
-        task.arguments = ["-c", "import mlx.core; import mlx_lm; print('OK')"]
+    private func checkEndpointAvailability() async -> Bool {
+        // The OpenAI-compatible endpoint provider runs through Foundation Models, which is macOS 27+.
+        guard #available(macOS 27.0, *) else { return false }
+        guard let url = URL(string: endpointURL) else { return false }
 
-        let pipe = Pipe()
-        task.standardOutput = pipe
-        task.standardError = pipe
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 3
+        request.applyEndpointAuth()
 
         do {
-            try task.run()
-            task.waitUntilExit()
-            return task.terminationStatus == 0
+            let (_, response) = try await URLSession.shared.data(for: request)
+            // Any HTTP response means the server is reachable.
+            return (response as? HTTPURLResponse) != nil
         } catch {
             return false
         }
@@ -351,12 +498,29 @@ class AIBackendManager: ObservableObject {
                 temperature: temperature,
                 maxTokens: maxTokens
             )
-        case .mlx:
-            return try await generateWithMLX(
+        case .openAICompatible:
+            guard #available(macOS 27.0, *) else {
+                throw AIBackendError.endpointUnavailable
+            }
+            return try await generateWithEndpoint(
                 prompt: prompt,
                 systemPrompt: systemPrompt,
                 temperature: temperature,
                 maxTokens: maxTokens
+            )
+        case .onDevice:
+            guard #available(macOS 27.0, *) else { throw AIBackendError.endpointUnavailable }
+            return try await generate(
+                with: SystemLanguageModel.default,
+                prompt: prompt, systemPrompt: systemPrompt,
+                temperature: temperature, maxTokens: maxTokens
+            )
+        case .privateCloud:
+            guard #available(macOS 27.0, *) else { throw AIBackendError.endpointUnavailable }
+            return try await generate(
+                with: PrivateCloudComputeLanguageModel(),
+                prompt: prompt, systemPrompt: systemPrompt,
+                temperature: temperature, maxTokens: maxTokens
             )
         case .tinyLLM:
             return try await generateWithTinyLLM(
@@ -426,84 +590,46 @@ class AIBackendManager: ObservableObject {
         return response.response
     }
 
-    // MARK: - MLX Implementation
+    // MARK: - OpenAI-compatible endpoint Implementation
+    //
+    // Runs inference on the local OpenAI-compatible endpoint server through Apple's Foundation Models
+    // (`LanguageModelSession`). This replaces the original MLX backend, which
+    // string-interpolated the prompt into a Python script and executed it — an
+    // arbitrary-code-execution vulnerability. Prompt content now travels as JSON
+    // over HTTP and is never treated as code. See EndpointLanguageModel / M2.
 
-    private func generateWithMLX(
+    @available(macOS 27.0, *)
+    private func generateWithEndpoint(
         prompt: String,
         systemPrompt: String?,
         temperature: Float,
         maxTokens: Int
     ) async throws -> String {
-        // MLX uses inline Python script with mlx_lm package
-        // No custom script path needed - uses pythonPath setting
-
-        // Build combined prompt
-        var fullPrompt = ""
-        if let systemPrompt = systemPrompt {
-            fullPrompt += "System: \(systemPrompt)\n\n"
+        guard let baseURL = URL(string: endpointURL) else {
+            throw AIBackendError.invalidConfiguration
         }
-        fullPrompt += "User: \(prompt)\n\nAssistant:"
+        let model = EndpointLanguageModel.server(baseURL: baseURL, model: endpointModel)
+        return try await generate(with: model, prompt: prompt, systemPrompt: systemPrompt,
+                                  temperature: temperature, maxTokens: maxTokens)
+    }
 
-        // Create Python MLX invocation
-        let script = """
-        import sys
-        import json
-        try:
-            import mlx_lm
-
-            prompt = '''
-            \(fullPrompt)
-            '''
-
-            model, tokenizer = mlx_lm.load("mlx-community/Llama-3.2-1B-Instruct-4bit")
-
-            response = mlx_lm.generate(
-                model,
-                tokenizer,
-                prompt=prompt,
-                max_tokens=\(maxTokens),
-                temp=\(temperature),
-                verbose=False
-            )
-
-            print(response)
-        except Exception as e:
-            print(json.dumps({"error": str(e)}), file=sys.stderr)
-            sys.exit(1)
-        """
-
-        // Write script to temp file
-        let tempDir = FileManager.default.temporaryDirectory
-        let scriptFile = tempDir.appendingPathComponent("mlx_generate_\(UUID().uuidString).py")
-        try script.write(to: scriptFile, atomically: true, encoding: .utf8)
-
-        defer {
-            try? FileManager.default.removeItem(at: scriptFile)
-        }
-
-        // Execute Python script
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: pythonPath)
-        task.arguments = [scriptFile.path]
-
-        let outputPipe = Pipe()
-        let errorPipe = Pipe()
-        task.standardOutput = outputPipe
-        task.standardError = errorPipe
-
-        try task.run()
-        task.waitUntilExit()
-
-        if task.terminationStatus != 0 {
-            let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-            let errorMessage = String(data: errorData, encoding: .utf8) ?? "Unknown error"
-            throw AIBackendError.mlxExecutionFailed(errorMessage)
-        }
-
-        let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
-        let output = String(data: outputData, encoding: .utf8) ?? ""
-
-        return output.trimmingCharacters(in: .whitespacesAndNewlines)
+    /// Shared Foundation Models path: drives any LanguageModel (OpenAI-compatible endpoint, Apple
+    /// on-device, or Private Cloud Compute) through a LanguageModelSession.
+    @available(macOS 27.0, *)
+    private func generate(
+        with model: some LanguageModel,
+        prompt: String,
+        systemPrompt: String?,
+        temperature: Float,
+        maxTokens: Int
+    ) async throws -> String {
+        let session = LanguageModelSession(model: model, instructions: systemPrompt)
+        let options = GenerationOptions(
+            temperature: Double(temperature),
+            maximumResponseTokens: maxTokens
+        )
+        let response = try await session.respond(to: prompt, options: options)
+        return response.content.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     // MARK: - TinyLLM Implementation
@@ -673,8 +799,12 @@ class AIBackendManager: ObservableObject {
         switch backend {
         case .ollama:
             return try await generateEmbeddingsWithOllama(text: text)
-        case .mlx:
-            return try await generateEmbeddingsWithMLX(text: text)
+        case .openAICompatible:
+            return try await generateEmbeddingsWithEndpoint(text: text)
+        case .onDevice, .privateCloud:
+            // Apple's text models don't expose embeddings; use a dedicated
+            // embedding provider (e.g. OpenAI-compatible endpoint BGE-M3) for semantic search instead.
+            throw AIBackendError.embeddingsNotSupported
         case .tinyLLM:
             return try await generateEmbeddingsWithTinyLLM(text: text)
         case .tinyChat:
@@ -712,10 +842,36 @@ class AIBackendManager: ObservableObject {
         return response.embedding
     }
 
-    private func generateEmbeddingsWithMLX(text: String) async throws -> [Float] {
-        // MLX embeddings implementation would go here
-        // For now, throw not implemented
-        throw AIBackendError.embeddingsNotSupported
+    // OpenAI-compatible endpoint embeddings via the local server's OpenAI-compatible embeddings endpoint.
+    // The dedicated provider (OpenAICompatibleEmbeddingProvider, BGE-M3) is wired in via the
+    // EmbeddingProvider protocol; this inline path keeps the legacy
+    // AIBackendManager.generateEmbeddings() surface working for the OpenAI-compatible endpoint backend.
+    private func generateEmbeddingsWithEndpoint(text: String) async throws -> [Float] {
+        guard let url = URL(string: "\(endpointURL)/v1/embeddings") else {
+            throw AIBackendError.invalidConfiguration
+        }
+
+        let requestBody: [String: Any] = [
+            "input": text,
+            "model": endpointEmbeddingModel
+        ]
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.applyEndpointAuth()
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+
+        struct EndpointEmbeddingResponse: Codable {
+            struct Item: Codable { let embedding: [Float] }
+            let data: [Item]
+        }
+
+        let decoder = JSONDecoder()
+        let response = try decoder.decode(EndpointEmbeddingResponse.self, from: data)
+        return response.data.first?.embedding ?? []
     }
 
     // TinyLLM embeddings via OpenAI-compatible API
@@ -818,22 +974,19 @@ enum AIBackendError: LocalizedError {
     case noBackendAvailable
     case invalidConfiguration
     case invalidState
-    case mlxScriptNotConfigured
-    case mlxExecutionFailed(String)
+    case endpointUnavailable
     case embeddingsNotSupported
 
     var errorDescription: String? {
         switch self {
         case .noBackendAvailable:
-            return "No AI backend available. Install Ollama or configure MLX."
+            return "No AI backend available. Start the OpenAI-compatible endpoint server or install Ollama."
         case .invalidConfiguration:
             return "AI backend configuration is invalid."
         case .invalidState:
             return "AI backend is in an invalid state."
-        case .mlxScriptNotConfigured:
-            return "MLX script path not configured."
-        case .mlxExecutionFailed(let message):
-            return "MLX execution failed: \(message)"
+        case .endpointUnavailable:
+            return "The OpenAI-compatible endpoint backend requires macOS 27 (Foundation Models)."
         case .embeddingsNotSupported:
             return "Embeddings not supported with current backend."
         }
@@ -894,11 +1047,27 @@ struct AIBackendSettingsView: View {
                 }
 
                 HStack {
-                    Image(systemName: "cpu")
-                    Text("MLX Toolkit")
+                    Image(systemName: "server.rack")
+                    Text("OpenAI-Compatible Endpoint")
                     Spacer()
-                    Text(manager.isMLXAvailable ? "Available" : "Unavailable")
-                        .foregroundColor(manager.isMLXAvailable ? .green : .secondary)
+                    Text(manager.isEndpointAvailable ? "Available" : "Unavailable")
+                        .foregroundColor(manager.isEndpointAvailable ? .green : .secondary)
+                }
+
+                HStack {
+                    Image(systemName: "cpu")
+                    Text("On-Device (Apple)")
+                    Spacer()
+                    Text(manager.isOnDeviceAvailable ? "Available" : "Unavailable")
+                        .foregroundColor(manager.isOnDeviceAvailable ? .green : .secondary)
+                }
+
+                HStack {
+                    Image(systemName: "lock.icloud")
+                    Text("Private Cloud Compute")
+                    Spacer()
+                    Text(manager.isPrivateCloudAvailable ? "Available" : "Unavailable")
+                        .foregroundColor(manager.isPrivateCloudAvailable ? .green : .secondary)
                 }
 
                 HStack {
@@ -954,19 +1123,23 @@ struct AIBackendSettingsView: View {
                 }
             }
 
-            if manager.isMLXAvailable || manager.selectedBackend == .mlx {
-                Section(header: Text("MLX Configuration")) {
-                    TextField("Python Path", text: $manager.pythonPath)
+            if manager.isEndpointAvailable || manager.selectedBackend == .openAICompatible {
+                Section(header: Text("OpenAI-compatible endpoint Configuration")) {
+                    TextField("Server URL", text: $manager.endpointURL)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .onChange(of: manager.pythonPath) { _ in
+                        .onChange(of: manager.endpointURL) { _ in
                             manager.saveSettings()
                         }
 
-                    TextField("MLX Script Path (optional)", text: $manager.mlxScriptPath)
+                    TextField("Model", text: $manager.endpointModel)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .onChange(of: manager.mlxScriptPath) { _ in
+                        .onChange(of: manager.endpointModel) { _ in
                             manager.saveSettings()
                         }
+
+                    Text("Runs on the local OpenAI-compatible endpoint server via Foundation Models (macOS 27+).")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
             }
 

@@ -52,7 +52,7 @@ class ThemeManager: ObservableObject {
     }
 
     func applyTheme() {
-        // Update app appearance
+        // Update app appearance (light/dark substrate for the system controls).
         switch currentTheme {
         case .system:
             NSApp.appearance = nil
@@ -64,6 +64,26 @@ class ThemeManager: ObservableObject {
             NSApp.appearance = NSAppearance(named: .accessibilityHighContrastDarkAqua)
         case .amoled, .solarized, .nord, .custom:
             NSApp.appearance = NSAppearance(named: .darkAqua)
+        }
+        applyWindowBackground()
+    }
+
+    /// Tint the window chrome (titlebar/resize area) to the theme background so
+    /// custom-palette themes — especially true-black AMOLED — aren't framed by
+    /// the default dark-gray window color. System/Light keep the OS default.
+    private func applyWindowBackground() {
+        let theme = currentTheme
+        DispatchQueue.main.async {
+            let color: NSColor
+            switch theme {
+            case .system, .light:
+                color = .windowBackgroundColor
+            default:
+                color = NSColor(self.backgroundColor(for: theme))
+            }
+            for window in NSApp.windows {
+                window.backgroundColor = color
+            }
         }
     }
 
@@ -144,18 +164,17 @@ class ThemeManager: ObservableObject {
 
     func accentColor(for theme: AppTheme) -> Color {
         switch theme {
-        case .system, .light, .dark:
-            return Color.accentColor
         case .highContrast:
-            return Color.yellow
-        case .amoled:
-            return Color.cyan
-        case .solarized:
-            return Color(hex: "#268BD2")
-        case .nord:
-            return Color(hex: "#88C0D0")
+            return Color.yellow   // deliberate high-visibility accent
         case .custom:
             return Color(hex: customColors.accentColor)
+        default:
+            // Use the system accent for all built-in themes. macOS renders the
+            // `.sidebar` List selection with the system accent regardless of our
+            // tint, so a theme-specific accent (e.g. AMOLED's old cyan) clashed
+            // with the blue selection. Aligning to the system accent keeps
+            // buttons and selection consistent; themes differ by background.
+            return Color.accentColor
         }
     }
 }

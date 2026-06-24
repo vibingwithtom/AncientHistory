@@ -145,7 +145,7 @@ class ContactExporter: ObservableObject {
             }
 
             vcf += "EMAIL:\(contact.email)\n"
-            vcf += "NOTE:Extracted from MBox - \(contact.emailCount) emails\n"
+            vcf += "NOTE:Extracted from Ancient History - \(contact.emailCount) emails\n"
             vcf += "END:VCARD\n\n"
         }
 
@@ -219,7 +219,7 @@ class ContactExporter: ObservableObject {
                     CNLabeledValue(label: CNLabelWork, value: contact.email as NSString)
                 ]
 
-                newContact.note = "Imported from MBox Explorer - \(contact.emailCount) emails"
+                newContact.note = "Imported from Ancient History - \(contact.emailCount) emails"
 
                 let saveRequest = CNSaveRequest()
                 saveRequest.add(newContact, toContainerWithIdentifier: nil)

@@ -25,7 +25,15 @@ class SpotlightIntegration: ObservableObject {
 
     // MARK: - Index Emails
 
+    /// System-wide Spotlight indexing is intentionally disabled: this is a
+    /// sandboxed, privacy-first app and donating email bodies into the OS-wide
+    /// Spotlight index would push content outside the app. This indexer has no
+    /// callers; it is kept inert (returns immediately) so nothing can donate.
+    private static let spotlightDonationEnabled = false
+
     func indexEmails(_ emails: [Email], from mboxPath: String, progressCallback: ((Double) -> Void)? = nil) async throws {
+        guard Self.spotlightDonationEnabled else { return }
+
         await MainActor.run {
             isIndexing = true
             indexedCount = 0
@@ -150,6 +158,8 @@ class SpotlightIntegration: ObservableObject {
     }
 
     func removeIndex(for emailIds: [UUID]) async throws {
+        guard Self.spotlightDonationEnabled else { return }
+
         let identifiers = emailIds.map { "\(domainIdentifier).\($0.uuidString)" }
 
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
@@ -316,7 +326,7 @@ struct SpotlightSettingsView: View {
                 }
             }
         } message: {
-            Text("This will remove all MBox Explorer emails from Spotlight search.")
+            Text("This will remove all Ancient History emails from Spotlight search.")
         }
     }
 }

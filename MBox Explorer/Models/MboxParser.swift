@@ -136,41 +136,83 @@ class MboxParser: ObservableObject {
     }
 
     private func extractAttachments(from chunk: String) -> [AttachmentInfo] {
+        // Scan MIME headers line by line. The previous single greedy regex (with
+        // dotMatchesLineSeparators) paired the email's top-level
+        // "Content-Type: multipart/…" with a distant filename= and then discarded
+        // it as multipart — so it found nothing. Instead, track the current part's
+        // Content-Type and pair it with the filename in that same part's headers
+        // (handles header folding, where name= wraps onto a continuation line).
         var attachments: [AttachmentInfo] = []
+        var seenFilenames = Set<String>()
+        var currentContentType = "application/octet-stream"
+        var inHeaders = true        // header section vs body of the current MIME part
+        var inNamedHeader = false   // current (possibly folded) header is Content-Type/Disposition
 
-        // Look for Content-Type headers with filename
-        let pattern = #"Content-Type:\s*([^;\n]+)(?:.*name=\"([^\"]+)\"|.*filename=\"([^\"]+)\")"#
-        let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive, .dotMatchesLineSeparators])
+        for raw in chunk.components(separatedBy: "\n") {
+            let trimmed = raw.trimmingCharacters(in: .whitespaces)
 
-        let nsString = chunk as NSString
-        let matches = regex?.matches(in: chunk, options: [], range: NSRange(location: 0, length: nsString.length)) ?? []
+            if trimmed.hasPrefix("--") {        // MIME boundary -> the next part's headers
+                inHeaders = true
+                inNamedHeader = false
+                continue
+            }
+            if trimmed.isEmpty {                // blank line -> the part's body begins
+                inHeaders = false
+                inNamedHeader = false
+                continue
+            }
+            guard inHeaders else { continue }   // never scan body content for name=/filename=
 
-        for match in matches {
-            if match.numberOfRanges >= 2 {
-                let contentType = nsString.substring(with: match.range(at: 1)).trimmingCharacters(in: .whitespaces)
-
-                // Get filename from either name= or filename=
-                var filename = ""
-                if match.numberOfRanges >= 3, match.range(at: 2).location != NSNotFound {
-                    filename = nsString.substring(with: match.range(at: 2))
-                } else if match.numberOfRanges >= 4, match.range(at: 3).location != NSNotFound {
-                    filename = nsString.substring(with: match.range(at: 3))
-                }
-
-                if !filename.isEmpty && !contentType.contains("multipart") {
-                    // Try to estimate size from base64 content if present
-                    let size = estimateAttachmentSize(contentType: contentType, in: chunk)
-
-                    attachments.append(AttachmentInfo(
-                        filename: filename,
-                        contentType: contentType,
-                        size: size
-                    ))
+            // A folded header continues the previous field (leading whitespace).
+            if !(raw.first == " " || raw.first == "\t") {
+                let lower = trimmed.lowercased()
+                if lower.hasPrefix("content-type:") {
+                    let value = trimmed.dropFirst("content-type:".count).trimmingCharacters(in: .whitespaces)
+                    currentContentType = value.components(separatedBy: ";").first?
+                        .trimmingCharacters(in: .whitespaces) ?? value
+                    inNamedHeader = true
+                } else if lower.hasPrefix("content-disposition:") {
+                    inNamedHeader = true
+                } else {
+                    inNamedHeader = false
                 }
             }
+
+            // Only Content-Type / Content-Disposition headers (and their folded
+            // continuations) carry a name=/filename= attachment parameter — not
+            // body text, e.g. "<meta name=3DGENERATOR>" in a quoted-printable HTML
+            // part, which previously produced bogus "3DGENERATOR>" attachments.
+            guard inNamedHeader, let filename = Self.filenameParameter(in: trimmed) else { continue }
+            if currentContentType.lowercased().contains("multipart") { continue }
+            if seenFilenames.contains(filename) { continue }
+            seenFilenames.insert(filename)
+
+            attachments.append(AttachmentInfo(
+                filename: filename,
+                contentType: currentContentType,
+                size: estimateAttachmentSize(contentType: currentContentType, in: chunk)
+            ))
         }
 
         return attachments
+    }
+
+    /// Extract a `filename=` or `name=` parameter value (quoted or unquoted) from a
+    /// single MIME header line, if present.
+    private static func filenameParameter(in line: String) -> String? {
+        for key in ["filename=", "name="] {
+            guard let range = line.range(of: key, options: .caseInsensitive) else { continue }
+            var value = String(line[range.upperBound...]).trimmingCharacters(in: .whitespaces)
+            if value.hasPrefix("\"") {
+                value = String(value.dropFirst())
+                if let end = value.firstIndex(of: "\"") { value = String(value[..<end]) }
+            } else {
+                value = value.components(separatedBy: CharacterSet(charactersIn: ";")).first ?? value
+                value = value.trimmingCharacters(in: .whitespaces)
+            }
+            if !value.isEmpty { return value }
+        }
+        return nil
     }
 
     private func estimateAttachmentSize(contentType: String, in chunk: String) -> Int? {
@@ -223,32 +265,11 @@ class MboxParser: ObservableObject {
         return nil
     }
 
-    /// Group emails into threads
+    /// Group emails into threads using header-derived structure (Message-ID /
+    /// In-Reply-To / References), falling back to subject only when headers are
+    /// absent. See ThreadGraph.
     func detectThreads(emails: [Email]) -> [EmailThread] {
-        var threads: [String: [Email]] = [:]
-
-        for email in emails {
-            // Normalize subject (remove Re:, Fwd:, etc.)
-            let normalizedSubject = normalizeSubject(email.subject)
-            threads[normalizedSubject, default: []].append(email)
-        }
-
-        return threads.map { subject, emails in
-            EmailThread(subject: subject, emails: emails)
-        }.sorted { $0.emails.count > $1.emails.count }
-    }
-
-    private func normalizeSubject(_ subject: String) -> String {
-        var normalized = subject.lowercased()
-        let prefixes = ["re:", "fwd:", "fw:", "aw:"]
-
-        for prefix in prefixes {
-            while normalized.hasPrefix(prefix) {
-                normalized = String(normalized.dropFirst(prefix.count)).trimmingCharacters(in: .whitespaces)
-            }
-        }
-
-        return normalized
+        ThreadGraph.build(from: emails).threads()
     }
 }
 

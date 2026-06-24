@@ -20,6 +20,14 @@ protocol EmbeddingProvider {
     func generateBatchEmbeddings(for texts: [String]) async throws -> [[Float]]
 }
 
+extension EmbeddingProvider {
+    /// A stable identifier for the concrete embedding *model* (not just the
+    /// provider type), used to stamp the vector collection so a model change is
+    /// detected even within one provider. Providers whose model is selectable
+    /// (e.g. Ollama) override this to fold in the model name.
+    var modelIdentifier: String { name }
+}
+
 /// Errors for embedding operations
 enum EmbeddingError: LocalizedError {
     case providerUnavailable(String)
@@ -53,9 +61,9 @@ enum EmbeddingError: LocalizedError {
 /// Embedding provider type
 enum EmbeddingProviderType: String, CaseIterable, Identifiable {
     case ollama = "Ollama"
-    case mlx = "MLX"
+    case appleNL = "Apple On-Device"
+    case openAICompatible = "OpenAI-Compatible"
     case openai = "OpenAI"
-    case sentenceTransformers = "Sentence Transformers"
     case tinyChat = "TinyChat"
     case openWebUI = "OpenWebUI"
     case none = "None (Keyword Search Only)"
@@ -66,12 +74,12 @@ enum EmbeddingProviderType: String, CaseIterable, Identifiable {
         switch self {
         case .ollama:
             return "Local embeddings via Ollama (free, private)"
-        case .mlx:
-            return "Apple Silicon native via MLX (free, fast)"
+        case .appleNL:
+            return "On-device Apple embeddings via NaturalLanguage (free, private, no server)"
+        case .openAICompatible:
+            return "Local OpenAI-compatible endpoint server with BGE-M3 (free, private)"
         case .openai:
             return "Cloud embeddings via OpenAI API (paid, high quality)"
-        case .sentenceTransformers:
-            return "Python sentence-transformers (free, flexible)"
         case .tinyChat:
             return "TinyChat by Jason Cox - OpenAI-compatible (local/cloud)"
         case .openWebUI:
@@ -85,12 +93,12 @@ enum EmbeddingProviderType: String, CaseIterable, Identifiable {
         switch self {
         case .ollama:
             return "brew install ollama && ollama pull nomic-embed-text"
-        case .mlx:
-            return "Included - uses MLX Swift package"
+        case .appleNL:
+            return "Built in — downloads a small on-device model on first use"
+        case .openAICompatible:
+            return "Run the local OpenAI-compatible endpoint server with a BGE-M3 model"
         case .openai:
             return "Requires OpenAI API key"
-        case .sentenceTransformers:
-            return "pip install sentence-transformers"
         case .tinyChat:
             return "docker run -d -p 8000:8000 jasonacox/tinychat:latest"
         case .openWebUI:
@@ -129,23 +137,24 @@ class EmbeddingManager: ObservableObject {
     @Published var statusMessage = "Checking..."
 
     private var ollamaProvider: OllamaEmbeddingProvider?
-    private var mlxProvider: MLXEmbeddingProvider?
+    private var appleNLProvider: AppleNLEmbeddingProvider?
+    private var endpointProvider: OpenAICompatibleEmbeddingProvider?
     private var openaiProvider: OpenAIEmbeddingProvider?
-    private var pythonProvider: SentenceTransformerProvider?
     private var tinyChatProvider: TinyChatEmbeddingProvider?
     private var openWebUIProvider: OpenWebUIEmbeddingProvider?
 
     private var activeProvider: EmbeddingProvider?
 
     private init() {
-        let savedProvider = UserDefaults.standard.string(forKey: "EmbeddingManager_SelectedProvider") ?? "Ollama"
-        self.selectedProvider = EmbeddingProviderType(rawValue: savedProvider) ?? .ollama
+        // Default to Apple's on-device embeddings (no server required).
+        let savedProvider = UserDefaults.standard.string(forKey: "EmbeddingManager_SelectedProvider") ?? EmbeddingProviderType.appleNL.rawValue
+        self.selectedProvider = EmbeddingProviderType(rawValue: savedProvider) ?? .appleNL
 
         // Initialize providers
         ollamaProvider = OllamaEmbeddingProvider()
-        mlxProvider = MLXEmbeddingProvider()
+        appleNLProvider = AppleNLEmbeddingProvider()
+        endpointProvider = OpenAICompatibleEmbeddingProvider()
         openaiProvider = OpenAIEmbeddingProvider()
-        pythonProvider = SentenceTransformerProvider()
         tinyChatProvider = TinyChatEmbeddingProvider()
         openWebUIProvider = OpenWebUIEmbeddingProvider()
 
@@ -165,15 +174,15 @@ class EmbeddingManager: ObservableObject {
         case .ollama:
             await ollamaProvider?.checkAvailability()
             provider = ollamaProvider
-        case .mlx:
-            await mlxProvider?.checkAvailability()
-            provider = mlxProvider
+        case .appleNL:
+            await appleNLProvider?.checkAvailability()
+            provider = appleNLProvider
+        case .openAICompatible:
+            await endpointProvider?.checkAvailability()
+            provider = endpointProvider
         case .openai:
             await openaiProvider?.checkAvailability()
             provider = openaiProvider
-        case .sentenceTransformers:
-            await pythonProvider?.checkAvailability()
-            provider = pythonProvider
         case .tinyChat:
             await tinyChatProvider?.checkAvailability()
             provider = tinyChatProvider
@@ -220,6 +229,12 @@ class EmbeddingManager: ObservableObject {
 
     var currentDimension: Int {
         activeProvider?.embeddingDimension ?? 0
+    }
+
+    /// Identifier of the active embedding model, used to stamp the vector
+    /// collection (falls back to the provider type when no provider is active).
+    var currentModelIdentifier: String {
+        activeProvider?.modelIdentifier ?? selectedProvider.rawValue
     }
 
     var useSemanticSearch: Bool {

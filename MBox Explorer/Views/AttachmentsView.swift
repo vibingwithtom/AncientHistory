@@ -15,9 +15,15 @@ struct AttachmentsView: View {
     @State private var sortOrder: AttachmentManager.SortOrder = .ascending
     @State private var selectedAttachments: Set<UUID> = []
     @State private var showingExportDialog = false
+    @State private var showingEmailSheet = false
+    // Cache the extracted attachments so each keeps a STABLE id across renders.
+    // ExtendedAttachmentInfo gets a fresh UUID on construction, so recomputing the
+    // list each render would invalidate row selection (the top "Export" button then
+    // matches nothing and exports an empty manifest).
+    @State private var cachedAttachments: [AttachmentManager.ExtendedAttachmentInfo] = []
 
     var allAttachments: [AttachmentManager.ExtendedAttachmentInfo] {
-        AttachmentManager.extractAllAttachments(from: viewModel.emails)
+        cachedAttachments
     }
 
     var filteredAttachments: [AttachmentManager.ExtendedAttachmentInfo] {
@@ -111,11 +117,21 @@ struct AttachmentsView: View {
                     set: { _ in }
                 )) {
                     ForEach(filteredAttachments) { info in
-                        AttachmentRow(info: info, isSelected: selectedAttachments.contains(info.id))
-                            .onTapGesture {
-                                toggleSelection(info.id)
+                        HStack(spacing: 8) {
+                            AttachmentRow(info: info, isSelected: selectedAttachments.contains(info.id))
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    toggleSelection(info.id)
+                                }
+                            Button {
+                                exportSingleAttachment(info)
+                            } label: {
+                                Image(systemName: "square.and.arrow.down")
                             }
-                            .contextMenu {
+                            .buttonStyle(.borderless)
+                            .help("Save attachment")
+                        }
+                        .contextMenu {
                                 Button {
                                     NSPasteboard.general.clearContents()
                                     NSPasteboard.general.setString(info.filename, forType: .string)
@@ -124,8 +140,12 @@ struct AttachmentsView: View {
                                 }
 
                                 Button {
-                                    // Jump to email containing this attachment
+                                    // Show the containing email. The Attachments
+                                    // layout has no email-detail pane, so present
+                                    // EmailDetailView (which renders selectedEmail)
+                                    // in a sheet.
                                     viewModel.selectedEmail = info.email
+                                    showingEmailSheet = true
                                 } label: {
                                     Label("Show in Email", systemImage: "envelope")
                                 }
@@ -150,6 +170,31 @@ struct AttachmentsView: View {
                 onExport: { exportSelectedAttachments() }
             )
         }
+        .sheet(isPresented: $showingEmailSheet) {
+            VStack(spacing: 0) {
+                HStack {
+                    Text(viewModel.selectedEmail?.subject ?? "Email")
+                        .font(.headline)
+                        .lineLimit(1)
+                    Spacer()
+                    Button("Done") { showingEmailSheet = false }
+                        .keyboardShortcut(.defaultAction)
+                }
+                .padding()
+                Divider()
+                EmailDetailView(viewModel: viewModel)
+            }
+            .frame(minWidth: 640, minHeight: 520)
+        }
+        .onAppear {
+            if cachedAttachments.isEmpty {
+                cachedAttachments = AttachmentManager.extractAllAttachments(from: viewModel.emails)
+            }
+        }
+        .onChange(of: viewModel.emails.count) { _, _ in
+            cachedAttachments = AttachmentManager.extractAllAttachments(from: viewModel.emails)
+            selectedAttachments.removeAll()
+        }
     }
 
     private func toggleSelection(_ id: UUID) {
@@ -170,11 +215,14 @@ struct AttachmentsView: View {
 
         panel.begin { (response: NSApplication.ModalResponse) in
             if response == .OK, let url = panel.url {
+                // Sandbox: claim access to the chosen output folder before writing.
+                let accessed = url.startAccessingSecurityScopedResource()
+                defer { if accessed { url.stopAccessingSecurityScopedResource() } }
                 let attachmentsToExport = filteredAttachments.filter { selectedAttachments.contains($0.id) }
                 do {
-                    try AttachmentManager.exportAttachments(attachmentsToExport, to: url)
+                    let exported = try AttachmentManager.exportAttachments(attachmentsToExport, to: url)
                     selectedAttachments.removeAll()
-                    viewModel.statusMessage = "Exported \(attachmentsToExport.count) attachments"
+                    viewModel.statusMessage = "Exported \(exported) of \(attachmentsToExport.count) attachments"
                 } catch {
                     viewModel.statusMessage = "Error exporting attachments: \(error.localizedDescription)"
                 }
@@ -185,30 +233,24 @@ struct AttachmentsView: View {
     private func exportSingleAttachment(_ info: AttachmentManager.ExtendedAttachmentInfo) {
         let panel = NSSavePanel()
         panel.canCreateDirectories = true
-        panel.nameFieldStringValue = "\(info.filename).txt"
-        panel.message = "Export attachment info"
+        panel.nameFieldStringValue = info.filename
+        panel.message = "Save attachment"
 
         panel.begin { (response: NSApplication.ModalResponse) in
             if response == .OK, let url = panel.url {
-                do {
-                    var content = "Attachment Information\n"
-                    content += "=====================\n\n"
-                    content += "Filename: \(info.filename)\n"
-                    content += "Content Type: \(info.contentType)\n"
-                    content += "Size: \(info.displaySize)\n\n"
-                    content += "From Email:\n"
-                    content += "  Subject: \(info.emailSubject)\n"
-                    content += "  Sender: \(info.emailFrom)\n"
-                    if let date = info.emailDate {
-                        content += "  Date: \(date.formatted())\n"
-                    }
-                    content += "\nNote: Actual attachment data is not stored in MBOX metadata.\n"
-                    content += "This file contains information about the attachment only.\n"
+                // Sandbox: claim access to the chosen save location before writing.
+                let accessed = url.startAccessingSecurityScopedResource()
+                defer { if accessed { url.stopAccessingSecurityScopedResource() } }
 
-                    try content.write(to: url, atomically: true, encoding: .utf8)
-                    viewModel.statusMessage = "Exported info for \(info.filename)"
+                guard let data = AttachmentExtractor.extractData(named: info.filename, fromBody: info.email.body) else {
+                    viewModel.statusMessage = "Could not decode \(info.filename) from the message"
+                    return
+                }
+                do {
+                    try data.write(to: url)
+                    viewModel.statusMessage = "Saved \(info.filename) (\(ByteCountFormatter.string(fromByteCount: Int64(data.count), countStyle: .file)))"
                 } catch {
-                    viewModel.statusMessage = "Error exporting: \(error.localizedDescription)"
+                    viewModel.statusMessage = "Error saving: \(error.localizedDescription)"
                 }
             }
         }

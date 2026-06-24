@@ -246,7 +246,7 @@ class ExportEngine: ObservableObject {
     }
 
     private func generateIndex(emails: [Email], threads: [EmailThread], at directory: URL, options: ExportOptions) throws {
-        var index = "MBox Explorer Export Index\n"
+        var index = "Ancient History Export Index\n"
         index += "Generated: \(Date())\n\n"
         index += "Total Emails: \(emails.count)\n"
         index += "Total Threads: \(threads.count)\n\n"

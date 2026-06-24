@@ -212,7 +212,7 @@ class MeetingEventExtractor: ObservableObject {
     func exportToICS(events: [ExtractedEvent]) -> String {
         var ics = "BEGIN:VCALENDAR\n"
         ics += "VERSION:2.0\n"
-        ics += "PRODID:-//MBox Explorer//EN\n"
+        ics += "PRODID:-//Ancient History//EN\n"
 
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd'T'HHmmss"

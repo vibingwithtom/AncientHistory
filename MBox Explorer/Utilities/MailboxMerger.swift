@@ -309,7 +309,7 @@ class MailboxMerger: ObservableObject {
             if let inReplyTo = email.inReplyTo { mboxContent += "In-Reply-To: \(inReplyTo)\n" }
 
             mboxContent += "\n"
-            mboxContent += email.body
+            mboxContent += MboxFileOperations.escapeMboxBody(email.body)
             mboxContent += "\n\n"
         }
 

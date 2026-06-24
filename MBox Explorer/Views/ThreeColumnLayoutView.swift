@@ -33,6 +33,10 @@ struct ThreeColumnLayoutView: View {
                     // Ask AI takes full remaining width (no preview pane)
                     AskView(viewModel: viewModel)
                         .frame(maxWidth: .infinity)
+                } else if selectedView == .explore {
+                    // Explore (speculative) takes full remaining width
+                    ExploreView(viewModel: viewModel)
+                        .frame(maxWidth: .infinity)
                 } else if selectedView == .network {
                     // Network visualization takes full remaining width
                     NetworkVisualizationView(emails: viewModel.emails)

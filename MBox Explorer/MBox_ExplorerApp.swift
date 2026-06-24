@@ -17,6 +17,12 @@ struct MBox_ExplorerApp: App {
                 .environmentObject(recentFilesViewModel)
         }
         .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button("About Ancient History") {
+                    NotificationCenter.default.post(name: .showAbout, object: nil)
+                }
+            }
+
             CommandGroup(replacing: .newItem) {
                 Button("Open MBOX File...") {
                     NotificationCenter.default.post(name: .openMboxFile, object: nil)
@@ -176,7 +182,6 @@ class RecentFilesViewModel: ObservableObject {
     }
 
     init() {
-        Task { @MainActor in NovaAPIServer.shared.start() }
         loadRecent()
     }
 
@@ -224,6 +229,7 @@ extension Notification.Name {
     static let showRegexSearch = Notification.Name("showRegexSearch")
     static let showRedactionTool = Notification.Name("showRedactionTool")
     static let showThemeSettings = Notification.Name("showThemeSettings")
+    static let showAbout = Notification.Name("showAbout")
     static let toggleLayoutMode = Notification.Name("toggleLayoutMode")
     static let clearFilters = Notification.Name("clearFilters")
     static let copyEmailAddress = Notification.Name("copyEmailAddress")

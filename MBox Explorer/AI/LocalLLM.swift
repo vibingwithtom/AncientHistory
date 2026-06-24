@@ -309,8 +309,16 @@ class LocalLLM: ObservableObject {
             sourcesToUse = Array(context.prefix(10))
         }
 
-        // Step 4: Build the full prompt
+        // Step 4: Build the full prompt — budget the retrieved context to the
+        // active model's window so a small on-device model doesn't overflow.
         let systemPrompt = customSystemPrompt
+
+        let (contextBudget, maxResponseTokens) = await MainActor.run {
+            (aiBackend.retrievedContextCharBudget, aiBackend.responseTokenBudget)
+        }
+        if contextText.count > contextBudget {
+            contextText = String(contextText.prefix(contextBudget)) + "\n…(context truncated to fit the model's window)"
+        }
 
         let userPrompt = """
         \(metadataContext)\(conversationContext)RETRIEVED EMAILS:
@@ -332,7 +340,8 @@ class LocalLLM: ObservableObject {
             let response = try await aiBackend.generate(
                 prompt: userPrompt,
                 systemPrompt: systemPrompt,
-                temperature: aiBackend.questionTemperature
+                temperature: aiBackend.questionTemperature,
+                maxTokens: maxResponseTokens
             )
 
             // Add to conversation history

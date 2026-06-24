@@ -15,15 +15,12 @@ struct ConversationView: View {
     @StateObject private var conversationManager = ConversationManager.shared
     @StateObject private var vectorDB = VectorDatabase()
     @StateObject private var commitmentTracker = CommitmentTracker.shared
-    @StateObject private var dailyBriefing = DailyBriefingEngine.shared
     @StateObject private var smartSuggestions = SmartSuggestionsEngine.shared
-    @StateObject private var voiceConversation = VoiceConversation.shared
 
     @State private var messageInput = ""
     @State private var showConversationList = false
     @State private var showCitations = true
     @State private var selectedFeature: ConversationFeature = .chat
-    @State private var showBriefing = false
     @State private var showCommitments = false
 
     var body: some View {
@@ -44,20 +41,21 @@ struct ConversationView: View {
                     switch selectedFeature {
                     case .chat:
                         chatView
-                    case .briefing:
-                        briefingView
                     case .commitments:
                         commitmentsView
                     case .relationships:
                         relationshipsView
                     case .patterns:
                         patternsView
+                    case .explore:
+                        ExploreView(viewModel: viewModel)
                     }
                 }
             }
 
-            // Citations Panel
-            if showCitations && !conversationManager.currentCitations.isEmpty {
+            // Citations Panel — only for the cited-answer (Chat) surface; never
+            // shown for the speculative Explore surface.
+            if showCitations && selectedFeature != .explore && !conversationManager.currentCitations.isEmpty {
                 citationsPanel
                     .frame(minWidth: 250, maxWidth: 350)
             }
@@ -86,14 +84,6 @@ struct ConversationView: View {
                     Image(systemName: "link.circle")
                 }
                 .help("Toggle citations panel")
-
-                if voiceConversation.isAvailable {
-                    Button(action: toggleVoiceInput) {
-                        Image(systemName: voiceConversation.isListening ? "mic.fill" : "mic")
-                            .foregroundColor(voiceConversation.isListening ? .red : .primary)
-                    }
-                    .help("Voice input")
-                }
             }
         }
     }
@@ -407,22 +397,6 @@ struct ConversationView: View {
 
     private var chatInputArea: some View {
         HStack(spacing: 12) {
-            // Voice input indicator
-            if voiceConversation.isListening {
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(Color.red)
-                        .frame(width: 8, height: 8)
-                    Text(voiceConversation.transcribedText.isEmpty ? "Listening..." : voiceConversation.transcribedText)
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Color.red.opacity(0.1))
-                .cornerRadius(8)
-            }
-
             TextField("Ask about your emails...", text: $messageInput)
                 .textFieldStyle(.plain)
                 .padding(12)
@@ -577,154 +551,6 @@ struct ConversationView: View {
             RoundedRectangle(cornerRadius: 8)
                 .fill(Color(nsColor: .controlBackgroundColor))
         )
-    }
-
-    // MARK: - Briefing View
-
-    private var briefingView: some View {
-        VStack(spacing: 0) {
-            // Header
-            HStack {
-                Text("Daily Briefing")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-
-                Spacer()
-
-                Button("Refresh") {
-                    Task {
-                        await dailyBriefing.generateBriefing(emails: viewModel.emails)
-                    }
-                }
-                .disabled(dailyBriefing.isGenerating)
-            }
-            .padding()
-            .background(Color(nsColor: .controlBackgroundColor))
-
-            if dailyBriefing.isGenerating {
-                ProgressView("Generating briefing...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let briefing = dailyBriefing.currentBriefing {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        // Summary
-                        if !briefing.summary.isEmpty {
-                            briefingSection(title: "Summary", icon: "doc.text.fill") {
-                                Text(briefing.summary)
-                            }
-                        }
-
-                        // Needs Response
-                        if !briefing.needsResponse.isEmpty {
-                            briefingSection(title: "Needs Response", icon: "exclamationmark.bubble.fill") {
-                                ForEach(briefing.needsResponse) { item in
-                                    briefingItemRow(item)
-                                }
-                            }
-                        }
-
-                        // Upcoming Deadlines
-                        if !briefing.upcomingDeadlines.isEmpty {
-                            briefingSection(title: "Upcoming Deadlines", icon: "calendar.badge.exclamationmark") {
-                                ForEach(briefing.upcomingDeadlines) { item in
-                                    briefingItemRow(item)
-                                }
-                            }
-                        }
-
-                        // Unusual Activity
-                        if !briefing.unusualActivity.isEmpty {
-                            briefingSection(title: "Unusual Activity", icon: "chart.line.uptrend.xyaxis") {
-                                ForEach(briefing.unusualActivity) { item in
-                                    briefingItemRow(item)
-                                }
-                            }
-                        }
-
-                        // Trending Topics
-                        if !briefing.trendingTopics.isEmpty {
-                            briefingSection(title: "Trending Topics", icon: "arrow.up.right") {
-                                ConversationFlowLayout(spacing: 8) {
-                                    ForEach(briefing.trendingTopics, id: \.self) { topic in
-                                        Text(topic)
-                                            .font(.caption)
-                                            .padding(.horizontal, 10)
-                                            .padding(.vertical, 4)
-                                            .background(Color.blue.opacity(0.2))
-                                            .cornerRadius(12)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .padding()
-                }
-            } else {
-                VStack(spacing: 16) {
-                    Image(systemName: "sun.max.fill")
-                        .font(.system(size: 48))
-                        .foregroundColor(.yellow)
-
-                    Text("No briefing yet")
-                        .font(.headline)
-
-                    Button("Generate Briefing") {
-                        Task {
-                            await dailyBriefing.generateBriefing(emails: viewModel.emails)
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-        }
-    }
-
-    private func briefingSection<Content: View>(title: String, icon: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: icon)
-                    .foregroundColor(.blue)
-                Text(title)
-                    .font(.headline)
-            }
-
-            content()
-        }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(nsColor: .controlBackgroundColor))
-        )
-    }
-
-    private func briefingItemRow(_ item: BriefingItem) -> some View {
-        HStack(spacing: 12) {
-            if item.priority == .high {
-                Circle()
-                    .fill(Color.red)
-                    .frame(width: 8, height: 8)
-            }
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.title)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-
-                Text(item.description)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-
-            Spacer()
-
-            if item.actionRequired {
-                Image(systemName: "arrow.right.circle")
-                    .foregroundColor(.blue)
-            }
-        }
-        .padding(.vertical, 4)
     }
 
     // MARK: - Commitments View
@@ -908,17 +734,6 @@ struct ConversationView: View {
         }
     }
 
-    private func toggleVoiceInput() {
-        if voiceConversation.isListening {
-            voiceConversation.stopListening()
-            if !voiceConversation.transcribedText.isEmpty {
-                sendMessage(voiceConversation.transcribedText)
-            }
-        } else {
-            voiceConversation.startListening()
-        }
-    }
-
     private func copyToClipboard(_ text: String) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
@@ -929,18 +744,18 @@ struct ConversationView: View {
 
 enum ConversationFeature: String, CaseIterable {
     case chat = "Chat"
-    case briefing = "Briefing"
     case commitments = "Commitments"
     case relationships = "Relationships"
     case patterns = "Patterns"
+    case explore = "Explore"
 
     var icon: String {
         switch self {
         case .chat: return "bubble.left.and.bubble.right"
-        case .briefing: return "sun.max"
         case .commitments: return "checkmark.circle"
         case .relationships: return "person.2"
         case .patterns: return "chart.bar"
+        case .explore: return "sparkles"
         }
     }
 }

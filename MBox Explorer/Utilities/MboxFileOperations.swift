@@ -281,10 +281,44 @@ class MboxFileOperations {
         }
 
         mboxEmail += "\n"
-        mboxEmail += email.body
+        mboxEmail += escapeMboxBody(email.body)
         mboxEmail += "\n\n"
 
         return mboxEmail
+    }
+
+    /// Escapes "From " lines in MBOX body content (RFC 4155 §5) using the
+    /// reversible "mboxrd" convention: any line matching `>*From ` (i.e. "From "
+    /// optionally already preceded by one or more ">") gets one more ">" prepended.
+    /// Quoting already-quoted lines too is what makes the transform reversible —
+    /// a reader can strip exactly one leading ">" from each `>+From ` line to
+    /// recover the original body without ambiguity, so repeated round-trips don't
+    /// corrupt content. (Plain "mboxo" quotes only bare "From " and is lossy.)
+    static func escapeMboxBody(_ body: String) -> String {
+        var escaped = ""
+        let lines = body.components(separatedBy: "\n")
+
+        for line in lines {
+            if isMboxFromLine(line) {
+                escaped.append(">\(line)\n")
+            } else {
+                escaped.append(line)
+                escaped.append("\n")
+            }
+        }
+
+        // Remove the trailing newline added after the last line
+        if escaped.hasSuffix("\n") {
+            escaped.removeLast()
+        }
+
+        return escaped
+    }
+
+    /// True if `line` is `>*From ` — zero or more ">" followed by "From ".
+    private static func isMboxFromLine(_ line: String) -> Bool {
+        let rest = line.drop(while: { $0 == ">" })
+        return rest.hasPrefix("From ")
     }
 
     private static func extractDomain(from email: String) -> String? {

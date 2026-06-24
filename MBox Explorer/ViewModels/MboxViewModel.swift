@@ -38,6 +38,7 @@ class MboxViewModel: ObservableObject {
         var showingRegexSearch = false
         var showingRedactionTool = false
         var showingThemeSettings = false
+        var showingAbout = false
         var showOpenPanel = false
         var showExportPanel = false
         var showSettings = false
@@ -146,6 +147,10 @@ class MboxViewModel: ObservableObject {
     var showingThemeSettings: Bool {
         get { displayState.showingThemeSettings }
         set { displayState.showingThemeSettings = newValue }
+    }
+    var showingAbout: Bool {
+        get { displayState.showingAbout }
+        set { displayState.showingAbout = newValue }
     }
     var showOpenPanel: Bool {
         get { displayState.showOpenPanel }
@@ -268,6 +273,13 @@ class MboxViewModel: ObservableObject {
         statusMessage = "Loading MBOX file..."
         currentFileURL = url
 
+        // Under the app sandbox, a user-selected file (from the open panel or a
+        // resolved security-scoped bookmark) must be explicitly claimed before it
+        // can be read, otherwise the read fails with "you don't have permission to
+        // view it". Hold access for the duration of the parse.
+        let didAccess = url.startAccessingSecurityScopedResource()
+        defer { if didAccess { url.stopAccessingSecurityScopedResource() } }
+
         do {
             emails = try await parser.parse(fileURL: url)
             statusMessage = "Detecting threads..."
@@ -276,9 +288,6 @@ class MboxViewModel: ObservableObject {
             applyFilters()
             showingProgressSheet = false
             statusMessage = "Loaded \(emails.count) emails, \(threads.count) threads"
-
-            // Sync data to widget
-            syncWidgetData()
 
             // Clear status after 3 seconds
             try? await Task.sleep(nanoseconds: 3_000_000_000)
@@ -716,21 +725,4 @@ class MboxViewModel: ObservableObject {
         let topSenders: [(String, Int)]
     }
 
-    // MARK: - Widget Integration
-
-    /// Syncs current email data to the widget via App Group
-    func syncWidgetData() {
-        SharedDataManager.shared.updateFromStats(
-            totalEmails: emails.count,
-            totalThreads: threads.count,
-            dateRange: dateRangeString,
-            topSenders: topSenders(limit: 5),
-            loadedFileName: currentFileURL?.lastPathComponent
-        )
-    }
-
-    /// Adds a search query to widget's recent queries
-    func addSearchToWidget(_ query: String) {
-        SharedDataManager.shared.addRecentQuery(query)
-    }
 }

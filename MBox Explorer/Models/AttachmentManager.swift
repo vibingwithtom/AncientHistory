@@ -167,26 +167,49 @@ class AttachmentManager {
         return sorted
     }
 
-    static func exportAttachments(_ attachments: [ExtendedAttachmentInfo], to directory: URL) throws {
-        // Create a manifest file listing all attachments
-        var manifest = "Attachment Export Manifest\n"
-        manifest += "Exported: \(Date())\n"
-        manifest += "Total Attachments: \(attachments.count)\n\n"
+    /// Decode each attachment from its email's raw body and write the actual file
+    /// into `directory`. Returns the number successfully decoded + written; any
+    /// that can't be decoded are listed in a manifest. Output names are sanitized
+    /// to their last path component (attachment filenames are untrusted), so a
+    /// crafted "../" name cannot escape the chosen directory.
+    @discardableResult
+    static func exportAttachments(_ attachments: [ExtendedAttachmentInfo], to directory: URL) throws -> Int {
+        var usedNames = Set<String>()
+        var exported = 0
+        var failed: [String] = []
 
-        for (index, info) in attachments.enumerated() {
-            manifest += "[\(index + 1)] \(info.filename)\n"
-            manifest += "    Type: \(info.contentType)\n"
-            manifest += "    Size: \(info.displaySize)\n"
-            manifest += "    From Email: \(info.emailSubject)\n"
-            manifest += "    Sender: \(info.emailFrom)\n"
-            if let date = info.emailDate {
-                manifest += "    Date: \(date.formatted())\n"
+        for info in attachments {
+            let outName = uniqueName(info.filename, in: &usedNames)
+            if let data = AttachmentExtractor.extractData(named: info.filename, fromBody: info.email.body) {
+                try data.write(to: directory.appendingPathComponent(outName))
+                exported += 1
+            } else {
+                failed.append(info.filename)
             }
-            manifest += "\n"
         }
 
-        let manifestURL = directory.appendingPathComponent("attachments_manifest.txt")
-        try manifest.write(to: manifestURL, atomically: true, encoding: .utf8)
+        var manifest = "Attachment Export\nExported: \(Date())\nDecoded: \(exported) of \(attachments.count)\n"
+        if !failed.isEmpty {
+            manifest += "Could not decode (no payload found in message): \(failed.joined(separator: ", "))\n"
+        }
+        try? manifest.write(to: directory.appendingPathComponent("attachments_manifest.txt"),
+                            atomically: true, encoding: .utf8)
+        return exported
+    }
+
+    /// A collision-free, path-safe output filename (last path component only).
+    private static func uniqueName(_ name: String, in used: inout Set<String>) -> String {
+        let base = (name as NSString).lastPathComponent.trimmingCharacters(in: .whitespaces)
+        var candidate = (base.isEmpty || base == "." || base == "..") ? "attachment" : base
+        let ext = (candidate as NSString).pathExtension
+        let stem = (candidate as NSString).deletingPathExtension
+        var n = 1
+        while used.contains(candidate.lowercased()) {
+            candidate = ext.isEmpty ? "\(stem)-\(n)" : "\(stem)-\(n).\(ext)"
+            n += 1
+        }
+        used.insert(candidate.lowercased())
+        return candidate
     }
 
     static func getStatistics(from attachments: [ExtendedAttachmentInfo]) -> AttachmentStatistics {
